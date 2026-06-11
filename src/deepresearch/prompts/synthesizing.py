@@ -1,10 +1,12 @@
-from deepresearch.state import SearchResult, SubQuestion
+from deepresearch.state import EvidenceCard, SubQuestion
 
 
-def build_synthesizing_prompt(question: str, subquestions: list[SubQuestion], results: list[SearchResult]) -> str:
+def build_synthesizing_prompt(question: str, subquestions: list[SubQuestion], evidence_cards: list[EvidenceCard]) -> str:
     return f"""
-You are a careful research analyst. Use only the supplied search results.
-Extract key findings for each subquestion. Every finding must be traceable to one of the supplied URLs.
+You are a careful research analyst. Use only the supplied EvidenceCards.
+Only summarize claims present in EvidenceCards. Do not introduce facts not supported by EvidenceCards.
+Low reliability evidence cannot support high confidence findings.
+Every finding must be traceable to one of the supplied EvidenceCard source_url values.
 Return only JSON in this exact shape:
 {{"notes":[{{"subquestion_id":"q1","key_findings":["..."],"source_urls":["https://..."],"confidence":"low|medium|high"}}]}}
 
@@ -14,6 +16,6 @@ Original question:
 Subquestions:
 {[item.model_dump() for item in subquestions]}
 
-Search results:
-{[item.model_dump() for item in results]}
+evidence_cards:
+{[item.model_dump() for item in evidence_cards]}
 """.strip()
