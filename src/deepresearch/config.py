@@ -1,0 +1,69 @@
+import os
+from dataclasses import dataclass
+
+from dotenv import load_dotenv
+
+from deepresearch.errors import ConfigError
+
+
+def _get_int_env(name: str, default: int) -> int:
+    value = os.getenv(name, str(default))
+    try:
+        return int(value)
+    except ValueError as exc:
+        raise ConfigError(f"{name} must be an integer") from exc
+
+
+@dataclass(frozen=True)
+class AppConfig:
+    deepseek_api_key: str | None
+    tavily_api_key: str | None
+    deepseek_base_url: str = "https://api.deepseek.com"
+    deepseek_model: str = "deepseek-v4-pro"
+    max_subquestions: int = 5
+    results_per_query: int = 5
+    output_dir: str = "reports"
+    verbose: bool = False
+
+    @classmethod
+    def from_env(cls) -> "AppConfig":
+        load_dotenv()
+        return cls(
+            deepseek_api_key=os.getenv("DEEPSEEK_API_KEY"),
+            tavily_api_key=os.getenv("TAVILY_API_KEY"),
+            deepseek_base_url=os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com"),
+            deepseek_model=os.getenv("DEEPSEEK_MODEL", "deepseek-v4-pro"),
+            max_subquestions=_get_int_env("DEEPRESEARCH_MAX_SUBQUESTIONS", 5),
+            results_per_query=_get_int_env("DEEPRESEARCH_SEARCH_RESULTS_PER_QUERY", 5),
+            output_dir=os.getenv("DEEPRESEARCH_OUTPUT_DIR", "reports"),
+        )
+
+    def with_overrides(
+        self,
+        *,
+        max_subquestions: int | None = None,
+        results_per_query: int | None = None,
+        output_dir: str | None = None,
+        model: str | None = None,
+        verbose: bool | None = None,
+    ) -> "AppConfig":
+        return AppConfig(
+            deepseek_api_key=self.deepseek_api_key,
+            tavily_api_key=self.tavily_api_key,
+            deepseek_base_url=self.deepseek_base_url,
+            deepseek_model=self.deepseek_model if model is None else model,
+            max_subquestions=self.max_subquestions if max_subquestions is None else max_subquestions,
+            results_per_query=self.results_per_query if results_per_query is None else results_per_query,
+            output_dir=self.output_dir if output_dir is None else output_dir,
+            verbose=self.verbose if verbose is None else verbose,
+        )
+
+    def validate_required(self) -> None:
+        if not self.deepseek_api_key:
+            raise ConfigError("DEEPSEEK_API_KEY is not set. Copy .env.example to .env and fill it in.")
+        if not self.tavily_api_key:
+            raise ConfigError("TAVILY_API_KEY is not set. Copy .env.example to .env and fill it in.")
+        if self.max_subquestions < 1:
+            raise ConfigError("DEEPRESEARCH_MAX_SUBQUESTIONS / --max-subquestions must be at least 1")
+        if self.results_per_query < 1:
+            raise ConfigError("DEEPRESEARCH_SEARCH_RESULTS_PER_QUERY / --results-per-query must be at least 1")
