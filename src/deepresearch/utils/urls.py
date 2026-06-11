@@ -5,12 +5,16 @@ _TRACKING_KEYS = {"gclid", "fbclid", "mc_cid", "mc_eid"}
 
 
 def normalize_url(url: str) -> str:
-    parsed = urlsplit(url.strip())
+    stripped = url.strip()
+    if not urlsplit(stripped).scheme and "." in stripped.split("/", 1)[0]:
+        stripped = f"https://{stripped}"
+
+    parsed = urlsplit(stripped)
     scheme = parsed.scheme.lower() or "https"
     netloc = parsed.netloc.lower()
     if netloc.startswith("www."):
         netloc = netloc[4:]
-    path = parsed.path.rstrip("/") or parsed.path
+    path = parsed.path.rstrip("/")
     query_items = []
     for key, value in parse_qsl(parsed.query, keep_blank_values=True):
         lowered = key.lower()
