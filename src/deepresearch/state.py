@@ -1,4 +1,4 @@
-from typing import Literal, TypedDict
+from typing import Any, Literal, TypedDict
 
 from pydantic import BaseModel, Field
 
@@ -40,6 +40,9 @@ class ResearchState(TypedDict, total=False):
     notes: list[ResearchNote]
     report_markdown: str
     report_status: Literal["success", "failed_validation"]
+    rewrite_attempted: bool
+    validation_attempts: int
+    validation_failures: list[dict[str, Any]]
     review: ReviewResult
     output_path: str
     errors: list[str]

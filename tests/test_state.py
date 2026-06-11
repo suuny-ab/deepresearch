@@ -54,3 +54,21 @@ def test_research_state_accepts_report_status():
     state: ResearchState = {"question": "AI search", "report_status": "failed_validation"}
 
     assert state["report_status"] == "failed_validation"
+
+
+def test_research_state_accepts_validation_retry_metadata():
+    from deepresearch.state import ResearchState
+
+    state: ResearchState = {
+        "question": "AI search",
+        "rewrite_attempted": True,
+        "validation_attempts": 2,
+        "validation_failures": [
+            {"reason": "missing_body_citations", "message": "正文没有使用编号引用。"},
+            {"reason": "unused_sources", "message": "Sources 中存在未被正文引用的编号。"},
+        ],
+    }
+
+    assert state["rewrite_attempted"] is True
+    assert state["validation_attempts"] == 2
+    assert len(state["validation_failures"]) == 2

@@ -29,3 +29,24 @@ def test_format_verbose_summary_includes_compact_workflow_details():
     assert "Errors:" in summary
     assert "One warning" in summary
     assert "Long content should not appear" not in summary
+
+
+def test_format_verbose_summary_includes_validation_retry_metadata():
+    state = {
+        "report_status": "failed_validation",
+        "rewrite_attempted": True,
+        "validation_attempts": 2,
+        "validation_failures": [
+            {"reason": "missing_body_citations", "message": "正文没有使用编号引用。"},
+            {"reason": "unused_sources", "message": "Sources 中存在未被正文引用的编号。"},
+        ],
+    }
+
+    summary = format_verbose_summary(state)
+
+    assert "Report validation:" in summary
+    assert "rewrite_attempted: True" in summary
+    assert "validation_attempts: 2" in summary
+    assert "final_status: failed_validation" in summary
+    assert "attempt 1: missing_body_citations" in summary
+    assert "attempt 2: unused_sources" in summary

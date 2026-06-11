@@ -44,6 +44,18 @@ def format_verbose_summary(state: dict[str, Any]) -> str:
     else:
         lines.append("- None")
 
+    lines.extend(["", "Report validation:"])
+    lines.append(f"- rewrite_attempted: {state.get('rewrite_attempted', False)}")
+    lines.append(f"- validation_attempts: {state.get('validation_attempts', 0)}")
+    lines.append(f"- final_status: {state.get('report_status', 'unknown')}")
+    failures = state.get("validation_failures", [])
+    if failures:
+        for index, failure in enumerate(failures, start=1):
+            reason = failure.get("reason", "unknown") if isinstance(failure, dict) else "unknown"
+            lines.append(f"- attempt {index}: {reason}")
+    else:
+        lines.append("- failures: None")
+
     errors = state.get("errors", [])
     lines.extend(["", "Errors:"])
     if errors:
