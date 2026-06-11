@@ -138,9 +138,16 @@ def make_write_report_node(llm: LLMClient):
                 "validation_failures": [],
             }
 
-        prompt = build_writing_prompt(state["question"], state.get("subquestions", []), notes, results)
-        report = llm.complete(prompt)
         allowed_urls = _allowed_source_urls(state)
+        prompt = build_writing_prompt(
+            state["question"],
+            state.get("subquestions", []),
+            notes,
+            results,
+            evidence_cards=state.get("evidence_cards", []),
+            allowed_source_urls=allowed_urls,
+        )
+        report = llm.complete(prompt)
         first_validation = validate_citations(report, allowed_urls)
         errors = list(state.get("errors", []))
         if first_validation.passed:

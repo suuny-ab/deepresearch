@@ -1,5 +1,5 @@
 from deepresearch.prompts.writing import build_writing_prompt
-from deepresearch.state import SearchResult
+from deepresearch.state import EvidenceCard, SearchResult
 
 
 def test_writing_prompt_requires_numbered_citations_and_lists_allowed_urls():
@@ -19,3 +19,34 @@ def test_writing_prompt_requires_numbered_citations_and_lists_allowed_urls():
     assert "Allowed source URLs" in prompt
     assert "https://example.com/a" in prompt
     assert "https://example.com/b" in prompt
+
+
+def test_writing_prompt_uses_evidence_card_urls_when_provided():
+    results = [
+        SearchResult(
+            subquestion_id="q1",
+            title="Raw source",
+            url="https://www.example.com/report?utm_source=x",
+            content="Content",
+        )
+    ]
+    evidence_cards = [
+        EvidenceCard(
+            id="e1",
+            subquestion_id="q1",
+            claim="Claim from normalized evidence.",
+            source_url="https://example.com/report",
+            source_title="Normalized source",
+            supporting_snippet="Claim from normalized evidence.",
+            content_type="extracted_content",
+            source_type="industry_report",
+            source_quality_score=85,
+            evidence_reliability="high",
+            confidence="high",
+        )
+    ]
+
+    prompt = build_writing_prompt("AI search", [], [], results, evidence_cards=evidence_cards)
+
+    assert "https://example.com/report" in prompt
+    assert "https://www.example.com/report?utm_source=x" not in prompt

@@ -1,4 +1,4 @@
-from deepresearch.state import ResearchNote, SearchResult, SubQuestion
+from deepresearch.state import EvidenceCard, ResearchNote, SearchResult, SubQuestion
 
 
 def build_writing_prompt(
@@ -6,8 +6,15 @@ def build_writing_prompt(
     subquestions: list[SubQuestion],
     notes: list[ResearchNote],
     results: list[SearchResult],
+    evidence_cards: list[EvidenceCard] | None = None,
+    allowed_source_urls: set[str] | None = None,
 ) -> str:
-    allowed_urls = sorted({item.url for item in results})
+    if allowed_source_urls is not None:
+        allowed_urls = sorted(allowed_source_urls)
+    elif evidence_cards:
+        allowed_urls = sorted({card.source_url for card in evidence_cards})
+    else:
+        allowed_urls = sorted({item.url for item in results})
     return f"""
 请使用中文撰写结构化 Markdown 深度研究报告，除非用户问题使用其他语言。
 

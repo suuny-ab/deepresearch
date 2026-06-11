@@ -104,6 +104,54 @@ def test_write_report_prefers_evidence_card_urls_over_raw_search_result_urls():
     assert result["validation_attempts"] == 1
 
 
+def test_write_report_prompt_lists_evidence_card_urls_not_raw_search_urls():
+    llm = FakeLLMClient([
+        "# AI Search\n\nAI search cites normalized evidence.[1]\n\n## Sources\n\n[1] https://example.com/report"
+    ])
+    node = make_write_report_node(llm)
+    state = {
+        "question": "AI search",
+        "subquestions": [SubQuestion(id="q1", question="What?", search_query="AI search", rationale="Background")],
+        "search_results": [
+            SearchResult(
+                subquestion_id="q1",
+                title="Raw source",
+                url="https://www.example.com/report?utm_source=x",
+                content="Content",
+            )
+        ],
+        "evidence_cards": [
+            EvidenceCard(
+                id="e1",
+                subquestion_id="q1",
+                claim="AI search cites normalized evidence.",
+                source_url="https://example.com/report",
+                source_title="Normalized source",
+                supporting_snippet="AI search cites normalized evidence.",
+                content_type="extracted_content",
+                source_type="industry_report",
+                source_quality_score=85,
+                evidence_reliability="high",
+                confidence="high",
+            )
+        ],
+        "notes": [
+            ResearchNote(
+                subquestion_id="q1",
+                key_findings=["AI search cites normalized evidence."],
+                source_urls=["https://example.com/report"],
+                confidence="high",
+            )
+        ],
+        "errors": [],
+    }
+
+    node(state)
+
+    assert "https://example.com/report" in llm.prompts[0]
+    assert "https://www.example.com/report?utm_source=x" not in llm.prompts[0]
+
+
 def test_write_report_replaces_report_when_sources_section_missing():
     llm = FakeLLMClient([
         "# AI Search\n\nAI search is changing discovery.[1]",
