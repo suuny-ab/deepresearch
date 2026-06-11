@@ -10,15 +10,15 @@ plan_research → search_web → prepare_evidence → synthesize_notes → write
 
 ## Evidence pipeline
 
-v0.2 uses an extract-based evidence pipeline:
+v0.3 uses a cross-validation evidence pipeline:
 
 ```text
-search → source scoring → selected source extraction → EvidenceCard → notes → report
+search → relevance + diversity selection → extract → EvidenceCard with cross-validation → notes → report
 ```
 
-Search results are treated as candidate sources. The tool does not assume Tavily `content` is full source text. Selected sources are extracted with Tavily `extract()` when possible, and evidence cards bind each claim to a source URL and supporting snippet.
+Search results are treated as candidate sources. Sources are selected by Tavily relevance score with domain diversity constraints (no same-domain duplicates per subquestion). EvidenceCards include corroboration_level (single_source / weakly_corroborated / strongly_corroborated) based on how many independent-domain sources support each claim.
 
-Verbose mode reports search coverage, source quality distribution, and evidence reliability distribution.
+Verbose mode reports search coverage and evidence corroboration distribution.
 
 ## Setup
 
