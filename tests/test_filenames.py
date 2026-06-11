@@ -27,6 +27,14 @@ def test_make_report_filename_contains_timestamp_and_slug():
     assert filename == "2026-06-10-153000-ai-search-trends.md"
 
 
+def test_make_report_filename_accepts_positional_now():
+    now = datetime(2026, 6, 10, 15, 30, 0)
+
+    filename = make_report_filename("AI Search Trends", now)
+
+    assert filename == "2026-06-10-153000-ai-search-trends.md"
+
+
 def test_make_failed_report_filename_contains_failed_suffix():
     now = datetime(2026, 6, 11, 9, 26, 27)
 

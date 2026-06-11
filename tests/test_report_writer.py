@@ -44,6 +44,22 @@ def test_save_report_writes_utf8_markdown(tmp_path):
     assert "## Quality Review" in output_path.read_text(encoding="utf-8")
 
 
+def test_save_report_accepts_positional_now(tmp_path):
+    review = ReviewResult(passed=True, score=90, issues=[], suggestions=[])
+    now = datetime(2026, 6, 10, 15, 30, 0)
+
+    output_path = save_report(
+        "AI Search Trends",
+        "# 标题\n\n内容",
+        review,
+        tmp_path,
+        now,
+    )
+
+    assert output_path.exists()
+    assert output_path.name == "2026-06-10-153000-ai-search-trends.md"
+
+
 def test_save_report_wraps_filesystem_errors(monkeypatch, tmp_path):
     review = ReviewResult(passed=True, score=90, issues=[], suggestions=[])
 
