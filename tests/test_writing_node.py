@@ -56,7 +56,10 @@ def test_write_report_allows_url_only_in_sources_when_body_uses_numbered_citatio
 
 
 def test_write_report_replaces_report_when_sources_section_missing():
-    llm = FakeLLMClient(["# AI Search\n\nAI search is changing discovery.[1]"])
+    llm = FakeLLMClient([
+        "# AI Search\n\nAI search is changing discovery.[1]",
+        "# AI Search\n\nAI search is changing discovery.[1]",
+    ])
     node = make_write_report_node(llm)
 
     result = node(_state())
@@ -70,7 +73,10 @@ def test_write_report_replaces_report_when_sources_section_missing():
 
 
 def test_write_report_replaces_report_when_body_has_no_numbered_citations():
-    llm = FakeLLMClient(["# AI Search\n\nThis report makes unsupported claims without citations.\n\n## Sources\n\n[1] https://example.com"])
+    llm = FakeLLMClient([
+        "# AI Search\n\nThis report makes unsupported claims without citations.\n\n## Sources\n\n[1] https://example.com",
+        "# AI Search\n\nThis report still makes unsupported claims without citations.\n\n## Sources\n\n[1] https://example.com",
+    ])
     node = make_write_report_node(llm)
 
     result = node(_state())
@@ -84,7 +90,10 @@ def test_write_report_replaces_report_when_body_has_no_numbered_citations():
 
 
 def test_write_report_replaces_report_when_source_url_is_not_allowed():
-    llm = FakeLLMClient(["# AI Search\n\nAI search is changing discovery.[1]\n\n## Sources\n\n[1] https://invented.example/source"])
+    llm = FakeLLMClient([
+        "# AI Search\n\nAI search is changing discovery.[1]\n\n## Sources\n\n[1] https://invented.example/source",
+        "# AI Search\n\nAI search is changing discovery.[1]\n\n## Sources\n\n[1] https://invented.example/source",
+    ])
     node = make_write_report_node(llm)
 
     result = node(_state())
@@ -104,7 +113,12 @@ def test_write_report_replaces_report_when_sources_are_unused():
         "AI search is changing discovery.[1]\n\n"
         "## Sources\n\n"
         "[1] https://example.com\n"
-        "[2] https://example.com/unused"
+        "[2] https://example.com/unused",
+        "# AI Search\n\n"
+        "AI search is changing discovery.[1]\n\n"
+        "## Sources\n\n"
+        "[1] https://example.com\n"
+        "[2] https://example.com/unused",
     ])
     node = make_write_report_node(llm)
     state = _state()
@@ -121,13 +135,18 @@ def test_write_report_replaces_report_when_sources_are_unused():
     assert any("unused_sources" in error for error in result["errors"])
 
 
-def test_write_report_rejects_unused_source_number_without_retry_yet():
+def test_write_report_retries_unused_source_number_once_then_fails():
     llm = FakeLLMClient([
         "# AI Search\n\n"
         "AI search is changing discovery.[1]\n\n"
         "## Sources\n\n"
         "[1] https://example.com\n"
-        "[2] https://example.com/extra"
+        "[2] https://example.com/extra",
+        "# AI Search\n\n"
+        "AI search is changing discovery.[1]\n\n"
+        "## Sources\n\n"
+        "[1] https://example.com\n"
+        "[2] https://example.com/extra",
     ])
     node = make_write_report_node(llm)
     state = _state()
@@ -138,13 +157,16 @@ def test_write_report_rejects_unused_source_number_without_retry_yet():
     result = node(state)
 
     assert result["report_status"] == "failed_validation"
-    assert result["rewrite_attempted"] is False
-    assert result["validation_attempts"] == 1
+    assert result["rewrite_attempted"] is True
+    assert result["validation_attempts"] == 2
     assert result["validation_failures"][0]["reason"] == "unused_sources"
 
 
 def test_write_report_replaces_report_when_body_contains_bare_url():
-    llm = FakeLLMClient(["# AI Search\n\nAI search is changing discovery https://example.com [1]\n\n## Sources\n\n[1] https://example.com"])
+    llm = FakeLLMClient([
+        "# AI Search\n\nAI search is changing discovery https://example.com [1]\n\n## Sources\n\n[1] https://example.com",
+        "# AI Search\n\nAI search is changing discovery https://example.com [1]\n\n## Sources\n\n[1] https://example.com",
+    ])
     node = make_write_report_node(llm)
 
     result = node(_state())
@@ -155,7 +177,7 @@ def test_write_report_replaces_report_when_body_contains_bare_url():
     assert any("bare_urls_in_body" in error for error in result["errors"])
 
 
-def test_write_report_does_not_retry_after_validation_failure_yet():
+def test_write_report_retries_after_validation_failure():
     llm = FakeLLMClient([
         "# AI Search\n\nThis report makes unsupported claims without citations.\n\n## Sources\n\n[1] https://example.com",
         VALID_NUMBERED_REPORT,
@@ -164,8 +186,10 @@ def test_write_report_does_not_retry_after_validation_failure_yet():
 
     result = node(_state())
 
-    assert result["report_status"] == "failed_validation"
-    assert len(llm.prompts) == 1
+    assert result["report_status"] == "success"
+    assert result["rewrite_attempted"] is True
+    assert result["validation_attempts"] == 2
+    assert len(llm.prompts) == 2
 
 
 def test_write_report_sets_failed_validation_status_when_inputs_are_missing():
@@ -179,14 +203,18 @@ def test_write_report_sets_failed_validation_status_when_inputs_are_missing():
 
 
 def test_invalid_source_failure_report_is_chinese_and_lists_invalid_and_allowed_urls():
-    llm = FakeLLMClient(["# AI Search\n\nAI search is changing discovery.[1]\n\n## Sources\n\n[1] https://invented.example/source"])
+    llm = FakeLLMClient([
+        "# AI Search\n\nAI search is changing discovery.[1]\n\n## Sources\n\n[1] https://invented.example/source",
+        "# AI Search\n\nAI search is changing discovery.[1]\n\n## Sources\n\n[1] https://invented.example/source",
+    ])
     node = make_write_report_node(llm)
 
     result = node({**_state(), "question": "AI 搜索"})
 
     report = result["report_markdown"]
     assert "# 研究报告生成失败" in report
-    assert "## 失败原因" in report
+    assert "## 第一次失败原因" in report
+    assert "## 第二次失败原因" in report
     assert "Sources 中存在未被搜索结果支持的 URL" in report
     assert "## 非法来源 URL" in report
     assert "https://invented.example/source" in report
@@ -194,3 +222,50 @@ def test_invalid_source_failure_report_is_chinese_and_lists_invalid_and_allowed_
     assert "https://example.com" in report
     assert "## 你可以怎么做" in report
     assert "--results-per-query" in report
+
+
+def test_write_report_retries_once_after_validation_failure_and_succeeds():
+    llm = FakeLLMClient([
+        "# AI Search\n\nAI search is changing discovery without citation.\n\n## Sources\n\n[1] https://example.com",
+        "# AI Search\n\nAI search is changing discovery.[1]\n\n## Sources\n\n[1] https://example.com",
+    ])
+    node = make_write_report_node(llm)
+
+    result = node({
+        "question": "AI search",
+        "subquestions": [SubQuestion(id="q1", question="What?", search_query="AI search", rationale="Background")],
+        "search_results": [SearchResult(subquestion_id="q1", title="Source", url="https://example.com", content="Content")],
+        "notes": [ResearchNote(subquestion_id="q1", key_findings=["Finding"], source_urls=["https://example.com"], confidence="high")],
+        "errors": [],
+    })
+
+    assert result["report_status"] == "success"
+    assert result["rewrite_attempted"] is True
+    assert result["validation_attempts"] == 2
+    assert result["validation_failures"][0]["reason"] == "missing_body_citations"
+    assert len(llm.prompts) == 2
+    assert "未通过引用校验" in llm.prompts[1]
+    assert "https://example.com" in llm.prompts[1]
+
+
+def test_write_report_retries_once_then_saves_full_failure_report():
+    llm = FakeLLMClient([
+        "# AI Search\n\nNo citation.\n\n## Sources\n\n[1] https://example.com",
+        "# AI Search\n\nStill no citation.\n\n## Sources\n\n[1] https://example.com",
+    ])
+    node = make_write_report_node(llm)
+
+    result = node({
+        "question": "AI search",
+        "subquestions": [SubQuestion(id="q1", question="What?", search_query="AI search", rationale="Background")],
+        "search_results": [SearchResult(subquestion_id="q1", title="Source", url="https://example.com", content="Content")],
+        "notes": [ResearchNote(subquestion_id="q1", key_findings=["Finding"], source_urls=["https://example.com"], confidence="high")],
+        "errors": [],
+    })
+
+    assert result["report_status"] == "failed_validation"
+    assert result["rewrite_attempted"] is True
+    assert result["validation_attempts"] == 2
+    assert len(result["validation_failures"]) == 2
+    assert "## 第一次失败原因" in result["report_markdown"]
+    assert "## 第二次失败原因" in result["report_markdown"]
