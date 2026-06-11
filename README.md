@@ -5,7 +5,7 @@ A Python + LangGraph command-line Deep Research Agent using DeepSeek v4 pro thro
 ## Workflow
 
 ```text
-plan_research → search_web → synthesize_notes → write_report → review_report → save_report
+plan_research → search_web → prepare_evidence → synthesize_notes → write_report → review_report → save_report
 ```
 
 ## Evidence pipeline
@@ -13,7 +13,7 @@ plan_research → search_web → synthesize_notes → write_report → review_re
 v0.2 uses an extract-based evidence pipeline:
 
 ```text
-search → source scoring → selected extract → EvidenceCard → notes → report
+search → source scoring → selected source extraction → EvidenceCard → notes → report
 ```
 
 Search results are treated as candidate sources. The tool does not assume Tavily `content` is full source text. Selected sources are extracted with Tavily `extract()` when possible, and evidence cards bind each claim to a source URL and supporting snippet.
@@ -81,7 +81,7 @@ If the first generated report fails citation validation, the tool automatically 
 
 ## Optional online smoke test
 
-This calls real external services and may consume API quota:
+This calls real external services and may consume API quota. An online run can make multiple DeepSeek calls and many Tavily calls: 2-3 search queries per subquestion, up to 5 subquestions by default, Tavily extraction for selected sources, plus a possible DeepSeek rewrite if citation validation fails. For cheaper smoke tests, use smaller `--max-subquestions` and `--results-per-query` values:
 
 ```bash
 uv run deepresearch "AI 搜索引擎的发展趋势"
@@ -89,7 +89,7 @@ uv run deepresearch "AI 搜索引擎的发展趋势"
 
 A successful smoke test should:
 
-- Show six progress stages
+- Show seven progress stages, including Preparing evidence
 - Call DeepSeek
 - Call Tavily
 - Print a Markdown report
