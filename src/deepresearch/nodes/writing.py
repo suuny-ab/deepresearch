@@ -85,6 +85,7 @@ def _build_rewrite_prompt(question: str, draft: str, validation: CitationValidat
     return f"""
 你刚才生成的报告未通过引用校验。
 
+失败类型：{validation.reason}
 失败原因：{validation.message}
 
 请重新生成完整 Markdown 报告。

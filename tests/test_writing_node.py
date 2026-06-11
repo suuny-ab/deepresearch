@@ -245,6 +245,7 @@ def test_write_report_retries_once_after_validation_failure_and_succeeds():
     assert result["validation_failures"][0]["reason"] == "missing_body_citations"
     assert len(llm.prompts) == 2
     assert "未通过引用校验" in llm.prompts[1]
+    assert "missing_body_citations" in llm.prompts[1]
     assert "https://example.com" in llm.prompts[1]
 
 
