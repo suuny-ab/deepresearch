@@ -14,7 +14,7 @@ class FakeSearchClient:
         self.queries.append(query)
         if query in self.failures:
             raise SearchError("search failed")
-        return [SearchResult(subquestion_id=subquestion_id, title="Source", url=f"https://example.com/{subquestion_id}", content="Content")]
+        return [SearchResult(subquestion_id=subquestion_id, query=query, title="Source", url=f"https://example.com/{subquestion_id}", content="Content")]
 
 
 def test_search_web_collects_results():
@@ -55,3 +55,22 @@ def test_search_web_raises_when_all_searches_fail():
             "subquestions": [SubQuestion(id="q1", question="Bad", search_query="bad query", rationale="Failure")],
             "errors": [],
         })
+
+
+def test_search_web_runs_all_search_queries():
+    client = FakeSearchClient()
+    node = make_search_web_node(client, results_per_query=3)
+
+    result = node({
+        "subquestions": [SubQuestion(
+            id="q1",
+            question="What?",
+            search_query="fallback query",
+            search_queries=["query one", "query two", "query three"],
+            rationale="Coverage",
+        )],
+        "errors": [],
+    })
+
+    assert client.queries == ["query one", "query two", "query three"]
+    assert [item.query for item in result["search_results"]] == ["query one", "query two", "query three"]
