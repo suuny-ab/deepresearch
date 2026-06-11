@@ -69,3 +69,29 @@ def test_format_verbose_summary_includes_retry_success_metadata():
     assert "validation_attempts: 2" in summary
     assert "final_status: success" in summary
     assert "attempt 1: missing_body_citations" in summary
+
+
+def test_format_verbose_summary_includes_evidence_metrics():
+    state = {
+        "evidence_metrics": {
+            "subquestions": 2,
+            "total_queries": 5,
+            "raw_search_results": 12,
+            "deduped_sources": 8,
+            "duplicates_removed": 4,
+            "extracted_sources": 5,
+            "evidence_cards": 9,
+            "source_quality": {"official": 1, "industry_report": 2, "seo_content": 1},
+            "evidence_reliability": {"high": 3, "medium": 4, "low": 2},
+        }
+    }
+
+    summary = format_verbose_summary(state)
+
+    assert "Search coverage:" in summary
+    assert "raw search results: 12" in summary
+    assert "deduped sources: 8" in summary
+    assert "Source quality:" in summary
+    assert "industry_report: 2" in summary
+    assert "Evidence reliability:" in summary
+    assert "high: 3" in summary

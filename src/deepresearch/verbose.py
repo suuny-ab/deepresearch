@@ -23,6 +23,37 @@ def format_verbose_summary(state: dict[str, Any]) -> str:
     else:
         lines.append("- None")
 
+    evidence_metrics = state.get("evidence_metrics")
+    if evidence_metrics:
+        lines.extend(["", "Search coverage:"])
+        for key in [
+            "subquestions",
+            "total_queries",
+            "raw_search_results",
+            "deduped_sources",
+            "duplicates_removed",
+            "extracted_sources",
+            "evidence_cards",
+        ]:
+            label = key.replace("_", " ")
+            lines.append(f"- {label}: {evidence_metrics.get(key, 0)}")
+
+        lines.extend(["", "Source quality:"])
+        source_quality = evidence_metrics.get("source_quality", {})
+        if source_quality:
+            for key, value in source_quality.items():
+                lines.append(f"- {key}: {value}")
+        else:
+            lines.append("- None")
+
+        lines.extend(["", "Evidence reliability:"])
+        evidence_reliability = evidence_metrics.get("evidence_reliability", {})
+        if evidence_reliability:
+            for key, value in evidence_reliability.items():
+                lines.append(f"- {key}: {value}")
+        else:
+            lines.append("- None")
+
     notes = state.get("notes", [])
     lines.extend(["", "Research notes:"])
     if notes:
