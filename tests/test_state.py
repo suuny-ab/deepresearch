@@ -46,3 +46,11 @@ def test_review_result_score_range():
 
     with pytest.raises(ValidationError):
         ReviewResult(passed=False, score=101, issues=[], suggestions=[])
+
+
+def test_research_state_accepts_report_status():
+    from deepresearch.state import ResearchState
+
+    state: ResearchState = {"question": "AI search", "report_status": "failed_validation"}
+
+    assert state["report_status"] == "failed_validation"

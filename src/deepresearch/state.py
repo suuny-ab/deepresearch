@@ -39,6 +39,7 @@ class ResearchState(TypedDict, total=False):
     search_results: list[SearchResult]
     notes: list[ResearchNote]
     report_markdown: str
+    report_status: Literal["success", "failed_validation"]
     review: ReviewResult
     output_path: str
     errors: list[str]

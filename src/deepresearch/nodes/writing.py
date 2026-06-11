@@ -46,7 +46,7 @@ def make_write_report_node(llm: LLMClient):
                 f"The question was: {state['question']}\n\n"
                 "Insufficient search results or notes were available, so no source-backed report was generated.\n"
             )
-            return {**state, "report_markdown": report}
+            return {**state, "report_markdown": report, "report_status": "failed_validation"}
 
         prompt = build_writing_prompt(state["question"], state.get("subquestions", []), notes, results)
         report = llm.complete(prompt)
@@ -57,20 +57,20 @@ def make_write_report_node(llm: LLMClient):
         if invalid_urls:
             errors.append(f"Report contains invalid source URL(s) outside search_results: {', '.join(invalid_urls)}")
             report = _safe_invalid_source_report(state["question"], allowed_urls)
-            return {**state, "report_markdown": report, "errors": errors}
+            return {**state, "report_markdown": report, "errors": errors, "report_status": "failed_validation"}
         if allowed_urls and not report_urls.intersection(allowed_urls):
             errors.append("Report citation validation failed: generated report contains no URLs from search_results.")
             report = _safe_invalid_source_report(state["question"], allowed_urls)
-            return {**state, "report_markdown": report, "errors": errors}
+            return {**state, "report_markdown": report, "errors": errors, "report_status": "failed_validation"}
         if not _has_sources_section(report):
             errors.append("Report Sources section validation failed: generated report is missing a ## Sources section.")
             report = _safe_invalid_source_report(state["question"], allowed_urls)
-            return {**state, "report_markdown": report, "errors": errors}
+            return {**state, "report_markdown": report, "errors": errors, "report_status": "failed_validation"}
         body_urls = _extract_urls(_body_before_sources(report))
         if allowed_urls and not body_urls.intersection(allowed_urls):
             errors.append("Report body citation validation failed: no citations before Sources section use URLs from search_results.")
             report = _safe_invalid_source_report(state["question"], allowed_urls)
-            return {**state, "report_markdown": report, "errors": errors}
-        return {**state, "report_markdown": report}
+            return {**state, "report_markdown": report, "errors": errors, "report_status": "failed_validation"}
+        return {**state, "report_markdown": report, "report_status": "success"}
 
     return write_report

@@ -101,3 +101,33 @@ def test_write_report_replaces_report_when_allowed_urls_only_appear_in_sources_s
         "body citation" in error.lower() or "no citations before sources" in error.lower()
         for error in result["errors"]
     )
+
+
+def test_write_report_sets_success_status_for_valid_report():
+    llm = FakeLLMClient(["# AI Search\n\nCited claim: https://example.com\n\n## Sources\n\n- https://example.com"])
+    node = make_write_report_node(llm)
+
+    result = node({
+        "question": "AI search",
+        "subquestions": [SubQuestion(id="q1", question="What?", search_query="AI search", rationale="Background")],
+        "search_results": [SearchResult(subquestion_id="q1", title="Source", url="https://example.com", content="Content")],
+        "notes": [ResearchNote(subquestion_id="q1", key_findings=["Finding"], source_urls=["https://example.com"], confidence="high")],
+        "errors": [],
+    })
+
+    assert result["report_status"] == "success"
+
+
+def test_write_report_sets_failed_validation_status_for_invalid_url():
+    llm = FakeLLMClient(["# AI Search\n\nInvented citation: https://invented.example/source"])
+    node = make_write_report_node(llm)
+
+    result = node({
+        "question": "AI search",
+        "subquestions": [SubQuestion(id="q1", question="What?", search_query="AI search", rationale="Background")],
+        "search_results": [SearchResult(subquestion_id="q1", title="Source", url="https://example.com", content="Content")],
+        "notes": [ResearchNote(subquestion_id="q1", key_findings=["Finding"], source_urls=["https://example.com"], confidence="high")],
+        "errors": [],
+    })
+
+    assert result["report_status"] == "failed_validation"
