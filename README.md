@@ -8,6 +8,18 @@ A Python + LangGraph command-line Deep Research Agent using DeepSeek v4 pro thro
 plan_research → search_web → synthesize_notes → write_report → review_report → save_report
 ```
 
+## Evidence pipeline
+
+v0.2 uses an extract-based evidence pipeline:
+
+```text
+search → source scoring → selected extract → EvidenceCard → notes → report
+```
+
+Search results are treated as candidate sources. The tool does not assume Tavily `content` is full source text. Selected sources are extracted with Tavily `extract()` when possible, and evidence cards bind each claim to a source URL and supporting snippet.
+
+Verbose mode reports search coverage, source quality distribution, and evidence reliability distribution.
+
 ## Setup
 
 ```bash
