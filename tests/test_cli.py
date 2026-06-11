@@ -2,6 +2,7 @@ from typer.testing import CliRunner
 
 import deepresearch.config
 from deepresearch.cli import app
+from deepresearch.state import ReviewResult
 
 
 runner = CliRunner()
@@ -55,3 +56,76 @@ def test_cli_rejects_zero_results_per_query_option_before_building_clients(monke
 
     assert result.exit_code == 1
     assert "results-per-query" in result.output or "DEEPRESEARCH_SEARCH_RESULTS_PER_QUERY" in result.output
+
+
+class FakeResearchApp:
+    def __init__(self, result):
+        self.result = result
+        self.inputs = []
+
+    def invoke(self, state):
+        self.inputs.append(state)
+        return self.result
+
+
+def _set_required_env(monkeypatch):
+    monkeypatch.setattr(deepresearch.config, "load_dotenv", lambda: None)
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "dummy-deepseek-key")
+    monkeypatch.setenv("TAVILY_API_KEY", "dummy-tavily-key")
+
+
+def test_cli_prints_success_message_for_successful_report(monkeypatch):
+    _set_required_env(monkeypatch)
+    fake_app = FakeResearchApp({
+        "question": "AI search",
+        "report_markdown": "# Report\n\nBody",
+        "output_path": "reports/success.md",
+        "report_status": "success",
+        "review": ReviewResult(passed=True, score=90, issues=[], suggestions=[]),
+        "errors": [],
+    })
+    monkeypatch.setattr("deepresearch.cli._build_app", lambda _config: fake_app)
+
+    result = runner.invoke(app, ["AI search"])
+
+    assert result.exit_code == 0
+    assert "Saved report to: reports/success.md" in result.output
+    assert "Report validation failed." not in result.output
+
+
+def test_cli_prints_failure_message_for_failed_validation(monkeypatch):
+    _set_required_env(monkeypatch)
+    fake_app = FakeResearchApp({
+        "question": "AI search",
+        "report_markdown": "# 研究报告生成失败",
+        "output_path": "reports/failed-failed.md",
+        "report_status": "failed_validation",
+        "review": ReviewResult(passed=False, score=0, issues=[], suggestions=[]),
+        "errors": ["Report contains invalid source URL(s) outside search_results: https://invalid.example"],
+    })
+    monkeypatch.setattr("deepresearch.cli._build_app", lambda _config: fake_app)
+
+    result = runner.invoke(app, ["AI search"])
+
+    assert result.exit_code == 0
+    assert "Report validation failed." in result.output
+    assert "Saved failure report to: reports/failed-failed.md" in result.output
+    assert "Run again or use --verbose" in result.output
+
+
+def test_with_progress_prints_label_before_running_node(capsys):
+    from deepresearch.cli import _with_progress
+
+    calls = []
+
+    def node(state):
+        calls.append("node-ran")
+        return {**state, "done": True}
+
+    wrapped = _with_progress("[1/6] Planning research...", node)
+    result = wrapped({"question": "AI search"})
+
+    captured = capsys.readouterr()
+    assert "[1/6] Planning research..." in captured.out
+    assert calls == ["node-ran"]
+    assert result["done"] is True

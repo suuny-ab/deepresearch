@@ -18,6 +18,14 @@ app = typer.Typer(no_args_is_help=True)
 console = Console()
 
 
+def _with_progress(label: str, node):
+    def wrapped(state):
+        console.print(label)
+        return node(state)
+
+    return wrapped
+
+
 def _build_app(config: AppConfig):
     assert config.deepseek_api_key is not None
     assert config.tavily_api_key is not None
@@ -27,13 +35,21 @@ def _build_app(config: AppConfig):
         model=config.deepseek_model,
     )
     search = TavilySearchClient(api_key=config.tavily_api_key)
+
+    plan_research = make_plan_research_node(llm, config.max_subquestions)
+    search_web = make_search_web_node(search, config.results_per_query)
+    synthesize_notes = make_synthesize_notes_node(llm)
+    write_report = make_write_report_node(llm)
+    review_report = make_review_report_node(llm)
+    save_report = make_save_report_node(config.output_dir)
+
     return create_research_app(
-        plan_research=make_plan_research_node(llm, config.max_subquestions),
-        search_web=make_search_web_node(search, config.results_per_query),
-        synthesize_notes=make_synthesize_notes_node(llm),
-        write_report=make_write_report_node(llm),
-        review_report=make_review_report_node(llm),
-        save_report=make_save_report_node(config.output_dir),
+        plan_research=_with_progress("[1/6] Planning research...", plan_research),
+        search_web=_with_progress("[2/6] Searching web...", search_web),
+        synthesize_notes=_with_progress("[3/6] Synthesizing notes...", synthesize_notes),
+        write_report=_with_progress("[4/6] Writing report...", write_report),
+        review_report=_with_progress("[5/6] Reviewing report...", review_report),
+        save_report=_with_progress("[6/6] Saving report...", save_report),
     )
 
 
@@ -57,19 +73,13 @@ def main(
         config.validate_required()
         research_app = _build_app(config)
 
-        steps = [
-            "[1/6] Planning research...",
-            "[2/6] Searching web...",
-            "[3/6] Synthesizing notes...",
-            "[4/6] Writing report...",
-            "[5/6] Reviewing report...",
-            "[6/6] Saving report...",
-        ]
-        for step in steps:
-            console.print(step)
-
         result = research_app.invoke({"question": question, "errors": []})
-        console.print(f"\nSaved report to: {result['output_path']}\n")
+        if result.get("report_status") == "failed_validation":
+            console.print("\nReport validation failed.")
+            console.print(f"Saved failure report to: {result['output_path']}")
+            console.print("Run again or use --verbose to inspect intermediate workflow details.\n")
+        else:
+            console.print(f"\nSaved report to: {result['output_path']}\n")
         console.print(Markdown(result.get("report_markdown", "")))
 
         if verbose and result.get("errors"):
