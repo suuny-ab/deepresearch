@@ -11,8 +11,9 @@ def slugify_question(question: str, max_length: int = 60) -> str:
     return slug[:max_length].strip("-") or "report"
 
 
-def make_report_filename(question: str, now: datetime | None = None) -> str:
+def make_report_filename(question: str, *, failed: bool = False, now: datetime | None = None) -> str:
     current = now or datetime.now()
     timestamp = current.strftime("%Y-%m-%d-%H%M%S")
     slug = slugify_question(question)
-    return f"{timestamp}-{slug}.md"
+    suffix = "-failed" if failed else ""
+    return f"{timestamp}-{slug}{suffix}.md"

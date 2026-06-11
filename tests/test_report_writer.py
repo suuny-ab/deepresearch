@@ -63,3 +63,20 @@ def test_save_report_wraps_filesystem_errors(monkeypatch, tmp_path):
 
     assert "Failed to write report: disk is full" in str(exc_info.value)
     assert isinstance(exc_info.value.__cause__, OSError)
+
+
+def test_save_report_writes_failed_filename(tmp_path):
+    review = ReviewResult(passed=False, score=0, issues=["Failed"], suggestions=[])
+    now = datetime(2026, 6, 11, 9, 26, 27)
+
+    output_path = save_report(
+        question="AI Search",
+        report_markdown="# 研究报告生成失败",
+        review=review,
+        output_dir=tmp_path,
+        failed=True,
+        now=now,
+    )
+
+    assert output_path.name == "2026-06-11-092627-ai-search-failed.md"
+    assert output_path.exists()

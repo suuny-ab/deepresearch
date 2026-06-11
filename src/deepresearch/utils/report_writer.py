@@ -33,12 +33,13 @@ def save_report(
     report_markdown: str,
     review: ReviewResult,
     output_dir: str | Path,
+    failed: bool = False,
     now: datetime | None = None,
 ) -> Path:
     directory = Path(output_dir)
     try:
         directory.mkdir(parents=True, exist_ok=True)
-        path = directory / make_report_filename(question, now=now)
+        path = directory / make_report_filename(question, failed=failed, now=now)
         path.write_text(append_quality_review(report_markdown, review), encoding="utf-8")
     except OSError as exc:
         raise ReportWriteError(f"Failed to write report: {exc}") from exc
