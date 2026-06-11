@@ -9,9 +9,24 @@ def build_writing_prompt(
 ) -> str:
     allowed_urls = sorted({item.url for item in results})
     return f"""
-Write a structured Markdown deep research report in Chinese unless the user's question is in another language.
-Use only the supplied notes and source URLs. Do not invent URLs.
-Every key conclusion should include a source URL or footnote.
+请使用中文撰写结构化 Markdown 深度研究报告，除非用户问题使用其他语言。
+
+引用规则必须严格遵守：
+1. 正文中的每个关键论点必须使用编号引用，例如 [1]、[2]。
+2. 正文中不要出现裸 URL。
+3. 所有 URL 只能出现在 ## Sources 部分。
+4. ## Sources 中必须用 [1]、[2] 映射到 allowed source URLs。
+5. 正文中使用的每个编号都必须在 ## Sources 中定义。
+6. ## Sources 中列出的每个编号都必须在正文中出现。
+7. 只能使用 Allowed source URLs 列表中的 URL。
+
+Citation rules:
+- Use numbered citations in the body: [1], [2], [3].
+- Do not put raw URLs in the body.
+- URLs may only appear in the ## Sources section.
+- Every citation number used in the body must be defined in ## Sources.
+- Every source listed in ## Sources must be cited in the body.
+- Only use URLs from the allowed source URL list.
 
 Required sections:
 # <title>
@@ -22,6 +37,10 @@ Required sections:
 ## 风险、不确定性与不同观点
 ## 结论
 ## Sources
+
+Sources format:
+[1] https://example.com/source-a
+[2] https://example.com/source-b
 
 Original question:
 {question}
