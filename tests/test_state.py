@@ -29,6 +29,19 @@ def test_search_result_keeps_source_url():
     assert result.score == 0.8
 
 
+def test_search_result_no_longer_has_source_quality_fields():
+    result = SearchResult(
+        subquestion_id="q1",
+        title="Report",
+        url="https://example.com/report",
+        content="Summary",
+    )
+
+    assert not hasattr(result, "source_type")
+    assert not hasattr(result, "source_quality_score")
+    assert not hasattr(result, "source_quality_reason")
+
+
 def test_research_note_rejects_invalid_confidence():
     with pytest.raises(ValidationError):
         ResearchNote(
@@ -107,26 +120,7 @@ def test_subquestion_normalizes_missing_search_queries_from_search_query():
     assert item.search_queries == ["AI search definition"]
 
 
-def test_search_result_accepts_query_and_source_quality_fields():
-    from deepresearch.state import SearchResult
-
-    item = SearchResult(
-        subquestion_id="q1",
-        query="AI search trends",
-        title="Report",
-        url="https://example.com/report",
-        content="Summary",
-        source_type="industry_report",
-        source_quality_score=85,
-        source_quality_reason="Report-like source",
-    )
-
-    assert item.query == "AI search trends"
-    assert item.source_type == "industry_report"
-    assert item.source_quality_score == 85
-
-
-def test_evidence_card_model_requires_traceable_fields():
+def test_evidence_card_has_corroboration_fields_not_source_quality():
     from deepresearch.state import EvidenceCard
 
     card = EvidenceCard(
@@ -137,12 +131,62 @@ def test_evidence_card_model_requires_traceable_fields():
         source_title="AI Search Report",
         supporting_snippet="RAG remains a core architecture for AI search systems.",
         content_type="extracted_content",
-        source_type="industry_report",
-        source_quality_score=85,
-        evidence_reliability="high",
+        corroboration_level="weakly_corroborated",
+        corroborating_sources=["https://other-domain.com/article"],
         confidence="high",
     )
 
     assert card.source_url == "https://example.com/report"
     assert card.supporting_snippet
-    assert card.evidence_reliability == "high"
+    assert card.corroboration_level == "weakly_corroborated"
+    assert card.corroborating_sources == ["https://other-domain.com/article"]
+    assert not hasattr(card, "source_type")
+    assert not hasattr(card, "source_quality_score")
+    assert not hasattr(card, "evidence_reliability")
+
+
+def test_evidence_card_defaults_corroboration_to_single_source():
+    from deepresearch.state import EvidenceCard
+
+    card = EvidenceCard(
+        id="e1",
+        subquestion_id="q1",
+        claim="Single source claim.",
+        source_url="https://example.com/report",
+        source_title="Report",
+        supporting_snippet="Single source claim.",
+        content_type="extracted_content",
+        confidence="medium",
+    )
+
+    assert card.corroboration_level == "single_source"
+    assert card.corroborating_sources == []
+
+
+def test_extracted_source_no_longer_has_source_quality_fields():
+    from deepresearch.state import ExtractedSource
+
+    source = ExtractedSource(
+        subquestion_id="q1",
+        url="https://example.com/a",
+        title="Source A",
+        raw_content="Full content.",
+    )
+
+    assert source.url == "https://example.com/a"
+    assert source.raw_content == "Full content."
+    assert not hasattr(source, "source_type")
+    assert not hasattr(source, "source_quality_score")
+    assert not hasattr(source, "source_quality_reason")
+
+
+def test_research_state_no_longer_has_extracted_sources():
+    from deepresearch.state import ResearchState
+
+    state: ResearchState = {
+        "question": "AI search",
+        "evidence_cards": [],
+        "evidence_metrics": {},
+    }
+
+    assert "extracted_sources" not in state
