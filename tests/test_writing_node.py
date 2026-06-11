@@ -268,5 +268,17 @@ def test_write_report_retries_once_then_saves_full_failure_report():
     assert result["rewrite_attempted"] is True
     assert result["validation_attempts"] == 2
     assert len(result["validation_failures"]) == 2
-    assert "## 第一次失败原因" in result["report_markdown"]
-    assert "## 第二次失败原因" in result["report_markdown"]
+    report = result["report_markdown"]
+    assert "## 第一次失败原因" in report
+    assert "## 第二次失败原因" in report
+    assert "## 详细诊断" in report
+    assert "### 第 1 次诊断" in report
+    assert "reason: missing_body_citations" in report
+    assert "body citations:" in report
+    assert "source citations:" in report
+    assert "undefined citations:" in report
+    assert "unused sources:" in report
+    assert "invalid source URLs:" in report
+    assert "bare body URLs:" in report
+    assert "available source URLs:" in report
+    assert "### 第 2 次诊断" in report

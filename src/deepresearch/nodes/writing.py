@@ -1,33 +1,48 @@
-from dataclasses import dataclass
-
 from deepresearch.citations import CitationFailureReason, CitationValidationResult, validate_citations
 from deepresearch.clients.llm import LLMClient
 from deepresearch.prompts.writing import build_writing_prompt
 from deepresearch.state import ResearchState
 
 
-@dataclass(frozen=True)
-class ReportValidationFailure:
-    reason: CitationFailureReason
-    message: str
-    invalid_urls: list[str]
-    allowed_urls: list[str]
-
-
 def _format_urls(urls: list[str]) -> str:
     return "\n".join(f"- {url}" for url in urls) if urls else "- None"
 
 
-def _failure_section(title: str, failure: ReportValidationFailure) -> str:
+def _format_numbers(numbers: set[int]) -> str:
+    return ", ".join(str(number) for number in sorted(numbers)) if numbers else "None"
+
+
+def _failure_section(title: str, failure: CitationValidationResult) -> str:
+    invalid_urls = _invalid_urls_for_reason(
+        failure.reason,
+        failure.invalid_source_urls,
+        failure.bare_body_urls,
+    )
     return (
         f"## {title}\n\n"
         f"{failure.message}\n\n"
         "### 非法来源 URL\n\n"
-        f"{_format_urls(failure.invalid_urls)}\n\n"
+        f"{_format_urls(invalid_urls)}\n\n"
     )
 
 
-def _validation_failure_report(question: str, failures: ReportValidationFailure | list[ReportValidationFailure]) -> str:
+def _diagnostic_section(attempt_number: int, failure: CitationValidationResult) -> str:
+    source_urls = [f"[{number}] {url}" for number, url in sorted(failure.source_urls.items())]
+    return (
+        f"### 第 {attempt_number} 次诊断\n\n"
+        f"- reason: {failure.reason}\n"
+        f"- body citations: {_format_numbers(failure.body_citations)}\n"
+        f"- source citations: {_format_numbers(failure.source_citations)}\n"
+        f"- undefined citations: {_format_numbers(failure.undefined_citations)}\n"
+        f"- unused sources: {_format_numbers(failure.unused_sources)}\n"
+        f"- invalid source URLs: {', '.join(failure.invalid_source_urls) if failure.invalid_source_urls else 'None'}\n"
+        f"- bare body URLs: {', '.join(failure.bare_body_urls) if failure.bare_body_urls else 'None'}\n"
+        f"- available source URLs: {', '.join(failure.allowed_urls) if failure.allowed_urls else 'None'}\n"
+        f"- parsed source URLs: {', '.join(source_urls) if source_urls else 'None'}\n\n"
+    )
+
+
+def _validation_failure_report(question: str, failures: CitationValidationResult | list[CitationValidationResult]) -> str:
     failure_list = failures if isinstance(failures, list) else [failures]
     if len(failure_list) == 1:
         failure_sections = _failure_section("失败原因", failure_list[0])
@@ -37,11 +52,17 @@ def _validation_failure_report(question: str, failures: ReportValidationFailure 
             for title, failure in zip(["第一次失败原因", "第二次失败原因"], failure_list)
         )
 
+    diagnostics = "".join(
+        _diagnostic_section(attempt_number, failure)
+        for attempt_number, failure in enumerate(failure_list, start=1)
+    )
     allowed_urls = failure_list[-1].allowed_urls if failure_list else []
     return (
         "# 研究报告生成失败\n\n"
         f"本次报告没有发布，因为生成内容未通过来源校验。\n\n"
         f"{failure_sections}"
+        "## 详细诊断\n\n"
+        f"{diagnostics}"
         "## 可用来源 URL\n\n"
         "以下 URL 来自本次 Tavily 搜索结果，报告只能引用这些来源：\n\n"
         f"{_format_urls(allowed_urls)}\n\n"
@@ -51,22 +72,6 @@ def _validation_failure_report(question: str, failures: ReportValidationFailure 
         "- 增加 `--results-per-query` 以提供更多可用来源。\n"
         "- 使用 `--verbose` 查看子问题、搜索 query 和搜索结果数量。\n"
     )
-
-
-def _make_failure(
-    question: str,
-    reason: CitationFailureReason,
-    message: str,
-    invalid_urls: list[str],
-    allowed_urls: set[str],
-) -> str:
-    failure = ReportValidationFailure(
-        reason=reason,
-        message=message,
-        invalid_urls=invalid_urls,
-        allowed_urls=sorted(allowed_urls),
-    )
-    return _validation_failure_report(question, failure)
 
 
 def _invalid_urls_for_reason(reason: CitationFailureReason, validation_invalid_urls: list[str], bare_body_urls: list[str]) -> list[str]:
@@ -176,19 +181,7 @@ def make_write_report_node(llm: LLMClient):
             f"Report citation validation failed on attempt 2: {second_validation.reason}: "
             f"{second_validation.message}{second_invalid_url_detail}"
         )
-        first_failure = ReportValidationFailure(
-            reason=first_validation.reason,
-            message=first_validation.message,
-            invalid_urls=first_invalid_urls,
-            allowed_urls=sorted(allowed_urls),
-        )
-        second_failure = ReportValidationFailure(
-            reason=second_validation.reason,
-            message=second_validation.message,
-            invalid_urls=second_invalid_urls,
-            allowed_urls=sorted(allowed_urls),
-        )
-        failure_report = _validation_failure_report(state["question"], [first_failure, second_failure])
+        failure_report = _validation_failure_report(state["question"], [first_validation, second_validation])
         return {
             **state,
             "report_markdown": failure_report,
