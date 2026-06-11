@@ -5,6 +5,7 @@ ALLOWED_URLS = {
     "https://example.com/a",
     "https://example.com/b",
     "https://example.com/c",
+    "https://example.com/a_(test)",
 }
 
 
@@ -142,3 +143,55 @@ C.[3]
         2: "https://example.com/b",
         3: "https://example.com/c",
     }
+
+
+def test_validate_allows_source_url_ending_with_balanced_parentheses():
+    report = """# Report
+
+Balanced parenthesis URLs are valid.[1]
+
+## Sources
+
+[1] https://example.com/a_(test)
+"""
+
+    result = validate_citations(report, ALLOWED_URLS)
+
+    assert result.passed is True
+    assert result.source_urls == {1: "https://example.com/a_(test)"}
+
+
+def test_validate_fails_for_duplicate_source_citation_numbers():
+    report = """# Report
+
+Duplicate source numbers hide earlier URLs.[1]
+
+## Sources
+
+[1] https://invalid.example/x
+[1] https://example.com/a
+"""
+
+    result = validate_citations(report, ALLOWED_URLS)
+
+    assert result.passed is False
+    assert result.reason == "duplicate_source_citations"
+    assert result.duplicated_source_citations == {1}
+
+
+def test_validate_reports_invalid_source_urls_before_unused_sources():
+    report = """# Report
+
+Invalid source URLs should not be masked.[1]
+
+## Sources
+
+[1] https://example.com/a
+[2] https://invalid.example/x
+"""
+
+    result = validate_citations(report, ALLOWED_URLS)
+
+    assert result.passed is False
+    assert result.reason == "invalid_source_urls"
+    assert result.invalid_source_urls == ["https://invalid.example/x"]

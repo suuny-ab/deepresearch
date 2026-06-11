@@ -8,6 +8,7 @@ CitationFailureReason = Literal[
     "undefined_citations",
     "unused_sources",
     "invalid_source_urls",
+    "duplicate_source_citations",
     "bare_urls_in_body",
 ]
 
@@ -28,6 +29,7 @@ class CitationValidationResult:
     undefined_citations: set[int] = field(default_factory=set)
     unused_sources: set[int] = field(default_factory=set)
     invalid_source_urls: list[str] = field(default_factory=list)
+    duplicated_source_citations: set[int] = field(default_factory=set)
     bare_body_urls: list[str] = field(default_factory=list)
     allowed_urls: list[str] = field(default_factory=list)
 
@@ -42,13 +44,25 @@ class CitationValidationResult:
             "undefined_citations": sorted(self.undefined_citations),
             "unused_sources": sorted(self.unused_sources),
             "invalid_source_urls": self.invalid_source_urls,
+            "duplicated_source_citations": sorted(self.duplicated_source_citations),
             "bare_body_urls": self.bare_body_urls,
             "allowed_urls": self.allowed_urls,
         }
 
 
 def _clean_url(url: str) -> str:
-    return url.rstrip(".,;:)\"]}")
+    cleaned = url.rstrip(".,;:")
+    matching_open = {")": "(",
+        "]": "[",
+        "}": "{",
+    }
+    while cleaned and cleaned[-1] in matching_open:
+        closing = cleaned[-1]
+        opening = matching_open[closing]
+        if cleaned.count(opening) >= cleaned.count(closing):
+            break
+        cleaned = cleaned[:-1]
+    return cleaned
 
 
 def split_sources(report: str) -> tuple[str, str | None]:
@@ -67,6 +81,17 @@ def extract_source_urls(sources: str) -> dict[int, str]:
     for number, url in _SOURCE_LINE_RE.findall(sources):
         parsed[int(number)] = _clean_url(url)
     return parsed
+
+
+def extract_duplicate_source_citations(sources: str) -> set[int]:
+    seen: set[int] = set()
+    duplicated: set[int] = set()
+    for number, _url in _SOURCE_LINE_RE.findall(sources):
+        citation_number = int(number)
+        if citation_number in seen:
+            duplicated.add(citation_number)
+        seen.add(citation_number)
+    return duplicated
 
 
 def extract_urls(text: str) -> list[str]:
@@ -96,8 +121,21 @@ def validate_citations(report: str, allowed_urls: set[str]) -> CitationValidatio
         )
 
     body_citations = extract_body_citations(body)
+    duplicated_source_citations = extract_duplicate_source_citations(sources)
     source_urls = extract_source_urls(sources)
     source_citations = set(source_urls)
+
+    if duplicated_source_citations:
+        return CitationValidationResult(
+            passed=False,
+            reason="duplicate_source_citations",
+            message=f"Sources 中存在重复编号：{sorted(duplicated_source_citations)}。",
+            body_citations=body_citations,
+            source_citations=source_citations,
+            source_urls=source_urls,
+            duplicated_source_citations=duplicated_source_citations,
+            allowed_urls=allowed,
+        )
 
     if not body_citations:
         return CitationValidationResult(
@@ -123,19 +161,6 @@ def validate_citations(report: str, allowed_urls: set[str]) -> CitationValidatio
             allowed_urls=allowed,
         )
 
-    unused = source_citations - body_citations
-    if unused:
-        return CitationValidationResult(
-            passed=False,
-            reason="unused_sources",
-            message=f"Sources 中存在未被正文引用的编号：{sorted(unused)}。",
-            body_citations=body_citations,
-            source_citations=source_citations,
-            source_urls=source_urls,
-            unused_sources=unused,
-            allowed_urls=allowed,
-        )
-
     invalid_urls = sorted(url for url in source_urls.values() if url not in allowed_urls)
     if invalid_urls:
         return CitationValidationResult(
@@ -146,6 +171,19 @@ def validate_citations(report: str, allowed_urls: set[str]) -> CitationValidatio
             source_citations=source_citations,
             source_urls=source_urls,
             invalid_source_urls=invalid_urls,
+            allowed_urls=allowed,
+        )
+
+    unused = source_citations - body_citations
+    if unused:
+        return CitationValidationResult(
+            passed=False,
+            reason="unused_sources",
+            message=f"Sources 中存在未被正文引用的编号：{sorted(unused)}。",
+            body_citations=body_citations,
+            source_citations=source_citations,
+            source_urls=source_urls,
+            unused_sources=unused,
             allowed_urls=allowed,
         )
 
