@@ -50,3 +50,22 @@ def test_format_verbose_summary_includes_validation_retry_metadata():
     assert "final_status: failed_validation" in summary
     assert "attempt 1: missing_body_citations" in summary
     assert "attempt 2: unused_sources" in summary
+
+
+def test_format_verbose_summary_includes_retry_success_metadata():
+    state = {
+        "report_status": "success",
+        "rewrite_attempted": True,
+        "validation_attempts": 2,
+        "validation_failures": [
+            {"reason": "missing_body_citations", "message": "正文没有使用编号引用。"},
+        ],
+    }
+
+    summary = format_verbose_summary(state)
+
+    assert "Report validation:" in summary
+    assert "rewrite_attempted: True" in summary
+    assert "validation_attempts: 2" in summary
+    assert "final_status: success" in summary
+    assert "attempt 1: missing_body_citations" in summary
