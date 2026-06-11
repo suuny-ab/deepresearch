@@ -41,3 +41,47 @@ def test_quality_score_is_not_tavily_score():
     quality = classify_source(item)
 
     assert quality.score <= 40
+
+
+def test_seo_domain_overrides_report_pdf_signals():
+    quality = classify_source(result("https://seo.com/report.pdf", title="AI Search Report"))
+
+    assert quality.source_type == "seo_content"
+    assert quality.score <= 40
+
+
+def test_seo_domain_overrides_report_title_signals():
+    quality = classify_source(result("https://seo.com/article", title="AI Search Research Report"))
+
+    assert quality.source_type == "seo_content"
+
+
+def test_company_domain_overrides_blog_path():
+    quality = classify_source(result("https://openai.com/blog/ai-search"))
+
+    assert quality.source_type == "company_blog"
+    assert quality.score == 65
+
+
+def test_official_classification_requires_matching_host():
+    quality = classify_source(result("https://example.com?next=gov.cn"))
+
+    assert quality.source_type != "official"
+
+
+def test_reputable_media_classification_requires_matching_host():
+    quality = classify_source(result("https://notreuters.com/article"))
+
+    assert quality.source_type != "reputable_media"
+
+
+def test_academic_classification_requires_matching_host():
+    quality = classify_source(result("https://foo.com/path/doi.org/article"))
+
+    assert quality.source_type != "academic"
+
+
+def test_pdf_detection_uses_path_before_query_string():
+    quality = classify_source(result("https://example.com/file.pdf?download=1"))
+
+    assert quality.source_type == "industry_report"
