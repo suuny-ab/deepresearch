@@ -63,9 +63,9 @@ AI search is changing discovery.[1]
 [1] https://example.com/source-a
 ```
 
-The tool validates that every body citation is defined in `## Sources`, every source is cited in the body, and every URL comes from Tavily search results.
+The tool validates that every body citation is defined in `## Sources`, every source is cited in the body, and every numbered source URL comes from Tavily search results.
 
-If the first generated report fails citation validation, the tool automatically rewrites the report once. If the rewrite also fails, it saves a `-failed.md` report with both validation failure reasons.
+If the first generated report fails citation validation, the tool automatically rewrites the report once. This automatic rewrite may make one additional DeepSeek API call and consume quota. If the rewrite also fails, it saves a `-failed.md` report with both validation failure reasons.
 
 ## Optional online smoke test
 
