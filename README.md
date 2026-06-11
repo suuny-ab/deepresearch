@@ -51,6 +51,22 @@ Offline tests do not call real APIs:
 uv run pytest
 ```
 
+## Citation format
+
+Reports use strict numbered citations:
+
+```markdown
+AI search is changing discovery.[1]
+
+## Sources
+
+[1] https://example.com/source-a
+```
+
+The tool validates that every body citation is defined in `## Sources`, every source is cited in the body, and every URL comes from Tavily search results.
+
+If the first generated report fails citation validation, the tool automatically rewrites the report once. If the rewrite also fails, it saves a `-failed.md` report with both validation failure reasons.
+
 ## Optional online smoke test
 
 This calls real external services and may consume API quota:

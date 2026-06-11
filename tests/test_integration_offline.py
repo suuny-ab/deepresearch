@@ -38,4 +38,6 @@ def test_full_graph_runs_offline(tmp_path):
     assert result["output_path"]
     assert result["review"].score == 90
     assert result["report_status"] == "success"
+    assert result["validation_attempts"] == 1
+    assert result["rewrite_attempted"] is False
     assert "# AI Search" in result["report_markdown"]
