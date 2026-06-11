@@ -23,15 +23,23 @@ def _fallback_notes(state: ResearchState) -> list[ResearchNote]:
 
 def _invalid_source_constraint_errors(state: ResearchState, notes: list[ResearchNote]) -> list[str]:
     allowed_subquestion_ids = {subquestion.id for subquestion in state.get("subquestions", [])}
-    allowed_urls = {card.source_url for card in state.get("evidence_cards", [])}
+    allowed_urls_by_subquestion: dict[str, set[str]] = {}
+    for card in state.get("evidence_cards", []):
+        allowed_urls_by_subquestion.setdefault(card.subquestion_id, set()).add(card.source_url)
+
     unknown_subquestion_ids = sorted({note.subquestion_id for note in notes if note.subquestion_id not in allowed_subquestion_ids})
-    unknown_urls = sorted({url for note in notes for url in note.source_urls if url not in allowed_urls})
+    mismatched_urls = sorted({
+        url
+        for note in notes
+        for url in note.source_urls
+        if url not in allowed_urls_by_subquestion.get(note.subquestion_id, set())
+    })
 
     errors = []
     if unknown_subquestion_ids:
         errors.append(f"unknown subquestion_id values: {', '.join(unknown_subquestion_ids)}")
-    if unknown_urls:
-        errors.append(f"source_urls outside EvidenceCards: {', '.join(unknown_urls)}")
+    if mismatched_urls:
+        errors.append(f"source_urls outside matching EvidenceCards: {', '.join(mismatched_urls)}")
     return errors
 
 

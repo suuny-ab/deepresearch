@@ -1,7 +1,7 @@
 from tests.conftest import FakeLLMClient
 
 from deepresearch.nodes.writing import make_write_report_node
-from deepresearch.state import ResearchNote, SearchResult, SubQuestion
+from deepresearch.state import EvidenceCard, ResearchNote, SearchResult, SubQuestion
 
 
 VALID_NUMBERED_REPORT = "# AI Search\n\nAI search is changing discovery.[1]\n\n## Sources\n\n[1] https://example.com"
@@ -53,6 +53,55 @@ def test_write_report_allows_url_only_in_sources_when_body_uses_numbered_citatio
     assert result["report_status"] == "success"
     assert "AI search systems combine retrieval" in result["report_markdown"]
     assert "https://example.com" in result["report_markdown"]
+
+
+def test_write_report_prefers_evidence_card_urls_over_raw_search_result_urls():
+    llm = FakeLLMClient([
+        "# AI Search\n\nAI search cites normalized evidence.[1]\n\n## Sources\n\n[1] https://example.com/report"
+    ])
+    node = make_write_report_node(llm)
+    state = {
+        "question": "AI search",
+        "subquestions": [SubQuestion(id="q1", question="What?", search_query="AI search", rationale="Background")],
+        "search_results": [
+            SearchResult(
+                subquestion_id="q1",
+                title="Raw source",
+                url="https://www.example.com/report?utm_source=x",
+                content="Content",
+            )
+        ],
+        "evidence_cards": [
+            EvidenceCard(
+                id="e1",
+                subquestion_id="q1",
+                claim="AI search cites normalized evidence.",
+                source_url="https://example.com/report",
+                source_title="Normalized source",
+                supporting_snippet="AI search cites normalized evidence.",
+                content_type="extracted_content",
+                source_type="industry_report",
+                source_quality_score=85,
+                evidence_reliability="high",
+                confidence="high",
+            )
+        ],
+        "notes": [
+            ResearchNote(
+                subquestion_id="q1",
+                key_findings=["AI search cites normalized evidence."],
+                source_urls=["https://example.com/report"],
+                confidence="high",
+            )
+        ],
+        "errors": [],
+    }
+
+    result = node(state)
+
+    assert result["report_status"] == "success"
+    assert result["rewrite_attempted"] is False
+    assert result["validation_attempts"] == 1
 
 
 def test_write_report_replaces_report_when_sources_section_missing():

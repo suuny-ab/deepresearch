@@ -65,6 +65,57 @@ def test_synthesize_notes_falls_back_when_llm_invents_source_url():
     assert any("https://invented.example" in error for error in result["errors"])
 
 
+def test_synthesize_notes_falls_back_when_llm_uses_source_url_from_different_subquestion():
+    llm = FakeLLMClient([
+        '{"notes":[{"subquestion_id":"q1","key_findings":["Cross-subquestion source"],"source_urls":["https://example.com/q2"],"confidence":"high"}]}'
+    ])
+    node = make_synthesize_notes_node(llm)
+
+    result = node({
+        "question": "AI search",
+        "subquestions": [
+            SubQuestion(id="q1", question="What?", search_query="AI search", rationale="Background"),
+            SubQuestion(id="q2", question="Why?", search_query="AI search impact", rationale="Impact"),
+        ],
+        "search_results": [],
+        "evidence_cards": [
+            EvidenceCard(
+                id="e1",
+                subquestion_id="q1",
+                claim="AI search summarizes results",
+                source_url="https://example.com/q1",
+                source_title="Source 1",
+                supporting_snippet="AI search summarizes results",
+                content_type="extracted_content",
+                source_type="industry_report",
+                source_quality_score=85,
+                evidence_reliability="high",
+                confidence="high",
+            ),
+            EvidenceCard(
+                id="e2",
+                subquestion_id="q2",
+                claim="AI search changes behavior",
+                source_url="https://example.com/q2",
+                source_title="Source 2",
+                supporting_snippet="AI search changes behavior",
+                content_type="extracted_content",
+                source_type="industry_report",
+                source_quality_score=85,
+                evidence_reliability="high",
+                confidence="high",
+            ),
+        ],
+        "errors": [],
+    })
+
+    assert result["notes"][0].subquestion_id == "q1"
+    assert result["notes"][0].confidence == "low"
+    assert result["notes"][0].source_urls == ["https://example.com/q1"]
+    assert any("invalid source constraints" in error for error in result["errors"])
+    assert any("https://example.com/q2" in error for error in result["errors"])
+
+
 def test_synthesize_notes_falls_back_when_llm_uses_unknown_subquestion_id():
     llm = FakeLLMClient([
         '{"notes":[{"subquestion_id":"q2","key_findings":["Wrong subquestion"],"source_urls":["https://example.com"],"confidence":"high"}]}'

@@ -86,6 +86,13 @@ def _failure_to_dict(result: CitationValidationResult) -> dict[str, object]:
     return result.to_dict()
 
 
+def _allowed_source_urls(state: ResearchState) -> set[str]:
+    evidence_cards = state.get("evidence_cards", [])
+    if evidence_cards:
+        return {card.source_url for card in evidence_cards}
+    return {result.url for result in state.get("search_results", [])}
+
+
 def _build_rewrite_prompt(question: str, draft: str, validation: CitationValidationResult, allowed_urls: set[str]) -> str:
     return f"""
 你刚才生成的报告未通过引用校验。
@@ -133,7 +140,7 @@ def make_write_report_node(llm: LLMClient):
 
         prompt = build_writing_prompt(state["question"], state.get("subquestions", []), notes, results)
         report = llm.complete(prompt)
-        allowed_urls = {result.url for result in results}
+        allowed_urls = _allowed_source_urls(state)
         first_validation = validate_citations(report, allowed_urls)
         errors = list(state.get("errors", []))
         if first_validation.passed:
