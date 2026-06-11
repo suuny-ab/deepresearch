@@ -94,6 +94,19 @@ def test_subquestion_accepts_multiple_search_queries():
     ]
 
 
+def test_subquestion_normalizes_missing_search_queries_from_search_query():
+    from deepresearch.state import SubQuestion
+
+    item = SubQuestion(
+        id="q1",
+        question="What is AI search?",
+        search_query="AI search definition",
+        rationale="Background",
+    )
+
+    assert item.search_queries == ["AI search definition"]
+
+
 def test_search_result_accepts_query_and_source_quality_fields():
     from deepresearch.state import SearchResult
 

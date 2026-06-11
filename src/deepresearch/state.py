@@ -1,6 +1,6 @@
 from typing import Any, Literal, TypedDict
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 SourceType = Literal[
@@ -25,6 +25,12 @@ class SubQuestion(BaseModel):
     search_query: str
     search_queries: list[str] = Field(default_factory=list)
     rationale: str
+
+    @model_validator(mode="after")
+    def normalize_search_queries(self) -> "SubQuestion":
+        if not self.search_queries:
+            self.search_queries = [self.search_query]
+        return self
 
 
 class SearchResult(BaseModel):
