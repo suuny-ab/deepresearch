@@ -1,3 +1,4 @@
+import pytest
 from typer.testing import CliRunner
 
 import deepresearch.config
@@ -8,8 +9,22 @@ from deepresearch.state import ReviewResult
 runner = CliRunner()
 
 
-def test_cli_reports_missing_api_key(monkeypatch):
+@pytest.fixture(autouse=True)
+def isolate_app_config_env(monkeypatch):
     monkeypatch.setattr(deepresearch.config, "load_dotenv", lambda: None)
+    for env_var in (
+        "DEEPSEEK_API_KEY",
+        "TAVILY_API_KEY",
+        "DEEPSEEK_BASE_URL",
+        "DEEPSEEK_MODEL",
+        "DEEPRESEARCH_MAX_SUBQUESTIONS",
+        "DEEPRESEARCH_SEARCH_RESULTS_PER_QUERY",
+        "DEEPRESEARCH_OUTPUT_DIR",
+    ):
+        monkeypatch.delenv(env_var, raising=False)
+
+
+def test_cli_reports_missing_api_key(monkeypatch):
     monkeypatch.delenv("DEEPSEEK_API_KEY", raising=False)
     monkeypatch.delenv("TAVILY_API_KEY", raising=False)
 
@@ -20,7 +35,6 @@ def test_cli_reports_missing_api_key(monkeypatch):
 
 
 def test_cli_reports_invalid_max_subquestions(monkeypatch):
-    monkeypatch.setattr(deepresearch.config, "load_dotenv", lambda: None)
     monkeypatch.setenv("DEEPSEEK_API_KEY", "dummy-deepseek-key")
     monkeypatch.setenv("TAVILY_API_KEY", "dummy-tavily-key")
     monkeypatch.setenv("DEEPRESEARCH_MAX_SUBQUESTIONS", "abc")
@@ -32,7 +46,6 @@ def test_cli_reports_invalid_max_subquestions(monkeypatch):
 
 
 def test_cli_rejects_zero_max_subquestions_option(monkeypatch):
-    monkeypatch.setattr(deepresearch.config, "load_dotenv", lambda: None)
     monkeypatch.setenv("DEEPSEEK_API_KEY", "dummy-deepseek-key")
     monkeypatch.setenv("TAVILY_API_KEY", "dummy-tavily-key")
 
@@ -43,7 +56,6 @@ def test_cli_rejects_zero_max_subquestions_option(monkeypatch):
 
 
 def test_cli_rejects_zero_results_per_query_option_before_building_clients(monkeypatch):
-    monkeypatch.setattr(deepresearch.config, "load_dotenv", lambda: None)
     monkeypatch.setenv("DEEPSEEK_API_KEY", "dummy-deepseek-key")
     monkeypatch.setenv("TAVILY_API_KEY", "dummy-tavily-key")
 
@@ -69,7 +81,6 @@ class FakeResearchApp:
 
 
 def _set_required_env(monkeypatch):
-    monkeypatch.setattr(deepresearch.config, "load_dotenv", lambda: None)
     monkeypatch.setenv("DEEPSEEK_API_KEY", "dummy-deepseek-key")
     monkeypatch.setenv("TAVILY_API_KEY", "dummy-tavily-key")
 
