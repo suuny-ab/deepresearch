@@ -45,6 +45,15 @@ Required sections:
 ## 结论
 ## Sources
 
+When citing claims in the report body:
+- Claims supported by multiple independent sources should be presented
+  with higher certainty
+- When a claim comes from a single source, consider using language like
+  "According to [source]..." or "One perspective suggests..." rather than
+  stating it as uncontested fact
+- If different sources present conflicting views, present both sides
+  rather than choosing one
+
 Sources format:
 [1] https://example.com/source-a
 [2] https://example.com/source-b

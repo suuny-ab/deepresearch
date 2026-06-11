@@ -39,9 +39,8 @@ def test_writing_prompt_uses_evidence_card_urls_when_provided():
             source_title="Normalized source",
             supporting_snippet="Claim from normalized evidence.",
             content_type="extracted_content",
-            source_type="industry_report",
-            source_quality_score=85,
-            evidence_reliability="high",
+            corroboration_level="single_source",
+            corroborating_sources=[],
             confidence="high",
         )
     ]
@@ -50,3 +49,26 @@ def test_writing_prompt_uses_evidence_card_urls_when_provided():
 
     assert "https://example.com/report" in prompt
     assert "https://www.example.com/report?utm_source=x" not in prompt
+
+
+def test_writing_prompt_includes_corroboration_guidance():
+    results = [SearchResult(subquestion_id="q1", title="A", url="https://example.com/a", content="Content")]
+    evidence_cards = [
+        EvidenceCard(
+            id="e1",
+            subquestion_id="q1",
+            claim="Claim.",
+            source_url="https://example.com/a",
+            source_title="A",
+            supporting_snippet="Claim.",
+            content_type="extracted_content",
+            corroboration_level="single_source",
+            corroborating_sources=[],
+            confidence="medium",
+        )
+    ]
+
+    prompt = build_writing_prompt("AI search", [], [], results, evidence_cards=evidence_cards)
+
+    assert "supported by multiple independent sources" in prompt
+    assert "single source" in prompt

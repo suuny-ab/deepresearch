@@ -80,9 +80,8 @@ def test_write_report_prefers_evidence_card_urls_over_raw_search_result_urls():
                 source_title="Normalized source",
                 supporting_snippet="AI search cites normalized evidence.",
                 content_type="extracted_content",
-                source_type="industry_report",
-                source_quality_score=85,
-                evidence_reliability="high",
+                corroboration_level="single_source",
+                corroborating_sources=[],
                 confidence="high",
             )
         ],
@@ -129,9 +128,8 @@ def test_write_report_prompt_lists_evidence_card_urls_not_raw_search_urls():
                 source_title="Normalized source",
                 supporting_snippet="AI search cites normalized evidence.",
                 content_type="extracted_content",
-                source_type="industry_report",
-                source_quality_score=85,
-                evidence_reliability="high",
+                corroboration_level="single_source",
+                corroborating_sources=[],
                 confidence="high",
             )
         ],
