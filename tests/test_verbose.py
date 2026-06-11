@@ -72,6 +72,8 @@ def test_format_verbose_summary_includes_retry_success_metadata():
 
 
 def test_format_verbose_summary_includes_evidence_metrics():
+    from deepresearch.state import SubQuestion
+
     state = {
         "subquestions": [
             SubQuestion(
@@ -89,8 +91,7 @@ def test_format_verbose_summary_includes_evidence_metrics():
             "duplicates_removed": 4,
             "extracted_sources": 5,
             "evidence_cards": 9,
-            "source_quality": {"official": 1, "industry_report": 2, "seo_content": 1},
-            "evidence_reliability": {"high": 3, "medium": 4, "low": 2},
+            "corroboration": {"strongly_corroborated": 3, "weakly_corroborated": 4, "single_source": 2},
         },
     }
 
@@ -101,13 +102,17 @@ def test_format_verbose_summary_includes_evidence_metrics():
     assert "total queries: 3" in summary
     assert "raw search results: 12" in summary
     assert "deduped sources: 8" in summary
-    assert "Source quality:" in summary
-    assert "industry_report: 2" in summary
-    assert "Evidence reliability:" in summary
-    assert "high: 3" in summary
+    assert "Evidence corroboration:" in summary
+    assert "strongly corroborated: 3" in summary
+    assert "weakly corroborated: 4" in summary
+    assert "single source: 2" in summary
+    assert "Source quality:" not in summary
+    assert "Evidence reliability:" not in summary
 
 
 def test_format_verbose_summary_derives_query_count_from_search_queries_when_metrics_omit_it():
+    from deepresearch.state import SubQuestion
+
     state = {
         "subquestions": [
             SubQuestion(

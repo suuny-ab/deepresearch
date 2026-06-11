@@ -49,19 +49,20 @@ def format_verbose_summary(state: dict[str, Any]) -> str:
             label = key.replace("_", " ")
             lines.append(f"- {label}: {coverage_values.get(key, evidence_metrics.get(key, 0))}")
 
-        lines.extend(["", "Source quality:"])
-        source_quality = evidence_metrics.get("source_quality", {})
-        if source_quality:
-            for key, value in source_quality.items():
-                lines.append(f"- {key}: {value}")
-        else:
-            lines.append("- None")
-
-        lines.extend(["", "Evidence reliability:"])
-        evidence_reliability = evidence_metrics.get("evidence_reliability", {})
-        if evidence_reliability:
-            for key, value in evidence_reliability.items():
-                lines.append(f"- {key}: {value}")
+        lines.extend(["", "Evidence corroboration:"])
+        corroboration = evidence_metrics.get("corroboration", {})
+        if corroboration:
+            for key in ["strongly_corroborated", "weakly_corroborated", "single_source"]:
+                label = key.replace("_", " ")
+                value = corroboration.get(key, 0)
+                description = ""
+                if key == "strongly_corroborated":
+                    description = " (3+ independent sources agree)"
+                elif key == "weakly_corroborated":
+                    description = " (2 independent sources agree)"
+                elif key == "single_source":
+                    description = " (only one source mentions this)"
+                lines.append(f"- {label}: {value}{description}")
         else:
             lines.append("- None")
 
