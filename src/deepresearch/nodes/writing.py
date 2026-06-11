@@ -1,39 +1,14 @@
-import re
 from dataclasses import dataclass
-from typing import Literal
 
+from deepresearch.citations import CitationFailureReason, validate_citations
 from deepresearch.clients.llm import LLMClient
 from deepresearch.prompts.writing import build_writing_prompt
 from deepresearch.state import ResearchState
 
 
-_URL_RE = re.compile(r"https?://[^\s)\]>\"']+")
-_SOURCES_HEADING_RE = re.compile(r"^##\s+Sources\s*$", re.IGNORECASE | re.MULTILINE)
-
-
-def _extract_urls(text: str) -> set[str]:
-    return {match.rstrip(".,;:") for match in _URL_RE.findall(text)}
-
-
-def _has_sources_section(text: str) -> bool:
-    return bool(_SOURCES_HEADING_RE.search(text))
-
-
-def _body_before_sources(text: str) -> str:
-    match = _SOURCES_HEADING_RE.search(text)
-    if not match:
-        return text
-    return text[: match.start()]
-
-
 @dataclass(frozen=True)
 class ReportValidationFailure:
-    reason: Literal[
-        "invalid_urls",
-        "no_citations",
-        "missing_sources_section",
-        "missing_body_citations",
-    ]
+    reason: CitationFailureReason
     message: str
     invalid_urls: list[str]
     allowed_urls: list[str]
@@ -64,12 +39,7 @@ def _validation_failure_report(question: str, failure: ReportValidationFailure) 
 
 def _make_failure(
     question: str,
-    reason: Literal[
-        "invalid_urls",
-        "no_citations",
-        "missing_sources_section",
-        "missing_body_citations",
-    ],
+    reason: CitationFailureReason,
     message: str,
     invalid_urls: list[str],
     allowed_urls: set[str],
@@ -81,6 +51,14 @@ def _make_failure(
         allowed_urls=sorted(allowed_urls),
     )
     return _validation_failure_report(question, failure)
+
+
+def _invalid_urls_for_reason(reason: CitationFailureReason, validation_invalid_urls: list[str], bare_body_urls: list[str]) -> list[str]:
+    if reason == "invalid_source_urls":
+        return validation_invalid_urls
+    if reason == "bare_urls_in_body":
+        return bare_body_urls
+    return []
 
 
 def make_write_report_node(llm: LLMClient):
@@ -98,47 +76,21 @@ def make_write_report_node(llm: LLMClient):
         prompt = build_writing_prompt(state["question"], state.get("subquestions", []), notes, results)
         report = llm.complete(prompt)
         allowed_urls = {result.url for result in results}
-        report_urls = _extract_urls(report)
-        invalid_urls = sorted(url for url in report_urls if url not in allowed_urls)
+        validation = validate_citations(report, allowed_urls)
         errors = list(state.get("errors", []))
-        if invalid_urls:
-            errors.append(f"Report contains invalid source URL(s) outside search_results: {', '.join(invalid_urls)}")
+        if not validation.passed:
+            invalid_urls = _invalid_urls_for_reason(
+                validation.reason,
+                validation.invalid_source_urls,
+                validation.bare_body_urls,
+            )
+            invalid_url_detail = f" Invalid URL(s): {', '.join(invalid_urls)}" if invalid_urls else ""
+            errors.append(f"Report citation validation failed ({validation.reason}): {validation.message}{invalid_url_detail}")
             report = _make_failure(
                 state["question"],
-                "invalid_urls",
-                "模型生成的报告包含未被搜索结果支持的来源 URL，因此系统拒绝保存该报告正文。",
+                validation.reason,
+                validation.message,
                 invalid_urls,
-                allowed_urls,
-            )
-            return {**state, "report_markdown": report, "errors": errors, "report_status": "failed_validation"}
-        if allowed_urls and not report_urls.intersection(allowed_urls):
-            errors.append("Report citation validation failed: generated report contains no URLs from search_results.")
-            report = _make_failure(
-                state["question"],
-                "no_citations",
-                "模型生成的报告没有在正文中引用任何可用来源。",
-                [],
-                allowed_urls,
-            )
-            return {**state, "report_markdown": report, "errors": errors, "report_status": "failed_validation"}
-        if not _has_sources_section(report):
-            errors.append("Report Sources section validation failed: generated report is missing a ## Sources section.")
-            report = _make_failure(
-                state["question"],
-                "missing_sources_section",
-                "模型生成的报告缺少 ## Sources 来源部分。",
-                [],
-                allowed_urls,
-            )
-            return {**state, "report_markdown": report, "errors": errors, "report_status": "failed_validation"}
-        body_urls = _extract_urls(_body_before_sources(report))
-        if allowed_urls and not body_urls.intersection(allowed_urls):
-            errors.append("Report body citation validation failed: no citations before Sources section use URLs from search_results.")
-            report = _make_failure(
-                state["question"],
-                "missing_body_citations",
-                "模型生成的报告只在 Sources 部分列出来源，但正文关键论点没有引用来源。",
-                [],
                 allowed_urls,
             )
             return {**state, "report_markdown": report, "errors": errors, "report_status": "failed_validation"}

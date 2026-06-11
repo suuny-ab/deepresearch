@@ -19,7 +19,7 @@ def test_full_graph_runs_offline(tmp_path):
     llm = FakeLLMClient([
         '{"subquestions":[{"id":"q1","question":"What is AI search?","search_query":"AI search","rationale":"Background"}]}',
         '{"notes":[{"subquestion_id":"q1","key_findings":["AI search uses generated answers."],"source_urls":["https://example.com/source"],"confidence":"high"}]}',
-        '# AI Search\n\nAI search uses generated answers. https://example.com/source\n\n## Sources\n\n- https://example.com/source',
+        '# AI Search\n\nAI search uses generated answers.[1]\n\n## Sources\n\n[1] https://example.com/source',
         '{"passed":true,"score":90,"issues":[],"suggestions":[]}',
     ])
     search = FakeSearchClient()
