@@ -140,3 +140,26 @@ def test_with_progress_prints_label_before_running_node(capsys):
     assert "[1/6] Planning research..." in captured.out
     assert calls == ["node-ran"]
     assert result["done"] is True
+
+
+def test_cli_verbose_prints_workflow_summary(monkeypatch):
+    _set_required_env(monkeypatch)
+    fake_app = FakeResearchApp({
+        "question": "AI search",
+        "subquestions": [],
+        "search_results": [],
+        "notes": [],
+        "report_markdown": "# Report\n\nBody",
+        "output_path": "reports/success.md",
+        "report_status": "success",
+        "review": ReviewResult(passed=True, score=90, issues=[], suggestions=[]),
+        "errors": [],
+    })
+    monkeypatch.setattr("deepresearch.cli._build_app", lambda _config: fake_app)
+
+    result = runner.invoke(app, ["AI search", "--verbose"])
+
+    assert result.exit_code == 0
+    assert "Workflow details:" in result.output
+    assert "Subquestions:" in result.output
+    assert "Review:" in result.output

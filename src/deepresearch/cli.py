@@ -13,6 +13,7 @@ from deepresearch.nodes.saving import make_save_report_node
 from deepresearch.nodes.searching import make_search_web_node
 from deepresearch.nodes.synthesizing import make_synthesize_notes_node
 from deepresearch.nodes.writing import make_write_report_node
+from deepresearch.verbose import format_verbose_summary
 
 app = typer.Typer(no_args_is_help=True)
 console = Console()
@@ -82,10 +83,8 @@ def main(
             console.print(f"\nSaved report to: {result['output_path']}\n")
         console.print(Markdown(result.get("report_markdown", "")))
 
-        if verbose and result.get("errors"):
-            console.print("\nErrors:")
-            for error in result["errors"]:
-                console.print(f"- {error}")
+        if verbose:
+            console.print("\n" + format_verbose_summary(result))
     except ConfigError as exc:
         console.print(f"Error: {exc}")
         raise typer.Exit(code=1) from exc
