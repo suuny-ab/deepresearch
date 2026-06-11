@@ -69,5 +69,25 @@ A successful smoke test should:
 
 ## Output
 
+## Validation failures
+
+If the model generates a report that uses unsupported source URLs, the tool refuses to publish that report body. It saves a failure report ending in `-failed.md` and lists the invalid URLs and allowed Tavily URLs.
+
+Example failure path:
+
+```text
+reports/2026-06-11-092627-ai-failed.md
+```
+
+## Verbose mode
+
+Use `--verbose` to inspect workflow summaries:
+
+```bash
+uv run deepresearch "AI 搜索引擎的发展趋势" --verbose
+```
+
+Verbose mode prints subquestions, search query summaries, result counts, research note counts, review score, and non-fatal errors. It does not print API keys or full raw search payloads.
+
 Reports are saved as timestamped Markdown files under `reports/`.
 Each saved report includes a `Quality Review` section.
