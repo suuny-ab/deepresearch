@@ -27,6 +27,18 @@ def test_write_report_uses_llm_markdown_with_numbered_citations():
     assert result["report_status"] == "success"
 
 
+def test_write_report_accepts_numbered_citations_with_sources_mapping():
+    llm = FakeLLMClient(["# AI Search\n\nAI search is changing discovery.[1]\n\n## Sources\n\n[1] https://example.com"])
+    node = make_write_report_node(llm)
+
+    result = node(_state())
+
+    assert result["report_status"] == "success"
+    assert result["rewrite_attempted"] is False
+    assert result["validation_attempts"] == 1
+    assert result["validation_failures"] == []
+
+
 def test_write_report_allows_url_only_in_sources_when_body_uses_numbered_citation():
     llm = FakeLLMClient([
         "# AI Search\n\n"
@@ -107,6 +119,28 @@ def test_write_report_replaces_report_when_sources_are_unused():
     assert "Sources 中存在未被正文引用的编号" in result["report_markdown"]
     assert "https://example.com/unused" in result["report_markdown"]
     assert any("unused_sources" in error for error in result["errors"])
+
+
+def test_write_report_rejects_unused_source_number_without_retry_yet():
+    llm = FakeLLMClient([
+        "# AI Search\n\n"
+        "AI search is changing discovery.[1]\n\n"
+        "## Sources\n\n"
+        "[1] https://example.com\n"
+        "[2] https://example.com/extra"
+    ])
+    node = make_write_report_node(llm)
+    state = _state()
+    state["search_results"].append(
+        SearchResult(subquestion_id="q1", title="Extra", url="https://example.com/extra", content="Content")
+    )
+
+    result = node(state)
+
+    assert result["report_status"] == "failed_validation"
+    assert result["rewrite_attempted"] is False
+    assert result["validation_attempts"] == 1
+    assert result["validation_failures"][0]["reason"] == "unused_sources"
 
 
 def test_write_report_replaces_report_when_body_contains_bare_url():

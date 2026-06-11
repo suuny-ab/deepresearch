@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from deepresearch.citations import CitationFailureReason, validate_citations
+from deepresearch.citations import CitationFailureReason, CitationValidationResult, validate_citations
 from deepresearch.clients.llm import LLMClient
 from deepresearch.prompts.writing import build_writing_prompt
 from deepresearch.state import ResearchState
@@ -61,6 +61,10 @@ def _invalid_urls_for_reason(reason: CitationFailureReason, validation_invalid_u
     return []
 
 
+def _failure_to_dict(result: CitationValidationResult) -> dict[str, object]:
+    return result.to_dict()
+
+
 def make_write_report_node(llm: LLMClient):
     def write_report(state: ResearchState) -> ResearchState:
         results = state.get("search_results", [])
@@ -71,7 +75,14 @@ def make_write_report_node(llm: LLMClient):
                 f"The question was: {state['question']}\n\n"
                 "Insufficient search results or notes were available, so no source-backed report was generated.\n"
             )
-            return {**state, "report_markdown": report, "report_status": "failed_validation"}
+            return {
+                **state,
+                "report_markdown": report,
+                "report_status": "failed_validation",
+                "rewrite_attempted": False,
+                "validation_attempts": 0,
+                "validation_failures": [],
+            }
 
         prompt = build_writing_prompt(state["question"], state.get("subquestions", []), notes, results)
         report = llm.complete(prompt)
@@ -93,7 +104,22 @@ def make_write_report_node(llm: LLMClient):
                 invalid_urls,
                 allowed_urls,
             )
-            return {**state, "report_markdown": report, "errors": errors, "report_status": "failed_validation"}
-        return {**state, "report_markdown": report, "report_status": "success"}
+            return {
+                **state,
+                "report_markdown": report,
+                "errors": errors,
+                "report_status": "failed_validation",
+                "rewrite_attempted": False,
+                "validation_attempts": 1,
+                "validation_failures": [_failure_to_dict(validation)],
+            }
+        return {
+            **state,
+            "report_markdown": report,
+            "report_status": "success",
+            "rewrite_attempted": False,
+            "validation_attempts": 1,
+            "validation_failures": [],
+        }
 
     return write_report
