@@ -22,7 +22,13 @@ def make_plan_research_node(llm: LLMClient, max_subquestions: int):
         except JSONParseError as exc:
             errors.append(f"Planning JSON parse failed: {exc}")
             subquestions = [
-                SubQuestion(id="q1", question=question, search_query=question, rationale="Fallback from original question")
+                SubQuestion(
+                    id="q1",
+                    question=question,
+                    search_query=question,
+                    search_queries=[question],
+                    rationale="Fallback from original question",
+                )
             ]
         return {**state, "subquestions": subquestions, "errors": errors}
 

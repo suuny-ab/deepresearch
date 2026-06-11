@@ -23,3 +23,14 @@ def test_plan_research_fallback_on_bad_json():
     assert result["subquestions"][0].question == "AI search trends"
     assert result["subquestions"][0].search_query == "AI search trends"
     assert result["errors"]
+
+
+def test_plan_research_parses_search_queries():
+    llm = FakeLLMClient([
+        '{"subquestions":[{"id":"q1","question":"What is AI search?","search_query":"AI search definition","search_queries":["AI search definition","AI 搜索 定义"],"rationale":"Background"}]}'
+    ])
+    node = make_plan_research_node(llm, max_subquestions=5)
+
+    result = node({"question": "AI search trends", "errors": []})
+
+    assert result["subquestions"][0].search_queries == ["AI search definition", "AI 搜索 定义"]
