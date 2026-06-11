@@ -20,7 +20,7 @@ Fill in `.env`:
 ```env
 DEEPSEEK_API_KEY=...
 TAVILY_API_KEY=...
-DEEPSEEK_BASE_URL=https://api.deepseek.com/v1
+DEEPSEEK_BASE_URL=https://api.deepseek.com
 DEEPSEEK_MODEL=deepseek-v4-pro
 ```
 
