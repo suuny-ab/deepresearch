@@ -34,7 +34,7 @@ class FakeSearchClient:
 def test_full_graph_runs_offline(tmp_path):
     llm = FakeLLMClient([
         '{"subquestions":[{"id":"q1","question":"What is AI search?","search_query":"AI search","rationale":"Background"}]}',
-        '{"evidence_cards":[{"id":"e1","subquestion_id":"q1","claim":"AI search uses generated answers.","source_url":"https://example.com/source","source_title":"Source","supporting_snippet":"AI search uses generated answers.","content_type":"extracted_content","source_type":"unknown","source_quality_score":50,"evidence_reliability":"medium","confidence":"high"}]}',
+        '{"evidence_cards":[{"id":"e1","subquestion_id":"q1","claim":"AI search uses generated answers.","source_url":"https://example.com/source","source_title":"Source","supporting_snippet":"AI search uses generated answers.","content_type":"extracted_content","corroboration_level":"single_source","corroborating_sources":[],"confidence":"high"}]}',
         '{"notes":[{"subquestion_id":"q1","key_findings":["AI search uses generated answers."],"source_urls":["https://example.com/source"],"confidence":"high"}]}',
         '# AI Search\n\nAI search uses generated answers.[1]\n\n## Sources\n\n[1] https://example.com/source',
         '{"passed":true,"score":90,"issues":[],"suggestions":[]}',
@@ -59,7 +59,7 @@ def test_full_graph_runs_offline(tmp_path):
     assert result["validation_attempts"] == 1
     assert result["rewrite_attempted"] is False
     assert search.extract_calls == [{"urls": ["https://example.com/source"], "subquestion_id": "q1"}]
-    assert result["extracted_sources"][0].raw_content == "AI search uses generated answers."
+    assert result["evidence_cards"][0].supporting_snippet == "AI search uses generated answers."
     assert result["evidence_cards"][0].id == "e1"
     assert result["evidence_cards"][0].content_type == "extracted_content"
     assert result["evidence_metrics"] == {
@@ -68,7 +68,6 @@ def test_full_graph_runs_offline(tmp_path):
         "duplicates_removed": 0,
         "extracted_sources": 1,
         "evidence_cards": 1,
-        "source_quality": {"unknown": 1},
-        "evidence_reliability": {"medium": 1},
+        "corroboration": {"single_source": 1},
     }
     assert "# AI Search" in result["report_markdown"]
