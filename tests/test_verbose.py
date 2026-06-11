@@ -73,9 +73,17 @@ def test_format_verbose_summary_includes_retry_success_metadata():
 
 def test_format_verbose_summary_includes_evidence_metrics():
     state = {
+        "subquestions": [
+            SubQuestion(
+                id="q1",
+                question="What is AI search?",
+                search_query="AI search",
+                search_queries=["AI search", "AI retrieval"],
+                rationale="Background",
+            ),
+            SubQuestion(id="q2", question="What are examples?", search_query="AI search examples", rationale="Examples"),
+        ],
         "evidence_metrics": {
-            "subquestions": 2,
-            "total_queries": 5,
             "raw_search_results": 12,
             "deduped_sources": 8,
             "duplicates_removed": 4,
@@ -83,15 +91,43 @@ def test_format_verbose_summary_includes_evidence_metrics():
             "evidence_cards": 9,
             "source_quality": {"official": 1, "industry_report": 2, "seo_content": 1},
             "evidence_reliability": {"high": 3, "medium": 4, "low": 2},
-        }
+        },
     }
 
     summary = format_verbose_summary(state)
 
     assert "Search coverage:" in summary
+    assert "subquestions: 2" in summary
+    assert "total queries: 3" in summary
     assert "raw search results: 12" in summary
     assert "deduped sources: 8" in summary
     assert "Source quality:" in summary
     assert "industry_report: 2" in summary
     assert "Evidence reliability:" in summary
     assert "high: 3" in summary
+
+
+def test_format_verbose_summary_derives_query_count_from_search_queries_when_metrics_omit_it():
+    state = {
+        "subquestions": [
+            SubQuestion(
+                id="q1",
+                question="What is AI search?",
+                search_query="AI search",
+                search_queries=["AI search", "neural search"],
+                rationale="Background",
+            )
+        ],
+        "evidence_metrics": {
+            "raw_search_results": 4,
+            "deduped_sources": 3,
+            "duplicates_removed": 1,
+            "extracted_sources": 2,
+            "evidence_cards": 2,
+        },
+    }
+
+    summary = format_verbose_summary(state)
+
+    assert "subquestions: 1" in summary
+    assert "total queries: 2" in summary

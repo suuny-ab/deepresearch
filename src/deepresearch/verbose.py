@@ -25,6 +25,17 @@ def format_verbose_summary(state: dict[str, Any]) -> str:
 
     evidence_metrics = state.get("evidence_metrics")
     if evidence_metrics:
+        derived_subquestion_count = len(subquestions)
+        derived_total_queries = sum(
+            len(item.search_queries) if getattr(item, "search_queries", []) else 1
+            for item in subquestions
+            if getattr(item, "search_queries", []) or getattr(item, "search_query", None)
+        )
+        coverage_values = {
+            "subquestions": evidence_metrics.get("subquestions", derived_subquestion_count),
+            "total_queries": evidence_metrics.get("total_queries", derived_total_queries),
+        }
+
         lines.extend(["", "Search coverage:"])
         for key in [
             "subquestions",
@@ -36,7 +47,7 @@ def format_verbose_summary(state: dict[str, Any]) -> str:
             "evidence_cards",
         ]:
             label = key.replace("_", " ")
-            lines.append(f"- {label}: {evidence_metrics.get(key, 0)}")
+            lines.append(f"- {label}: {coverage_values.get(key, evidence_metrics.get(key, 0))}")
 
         lines.extend(["", "Source quality:"])
         source_quality = evidence_metrics.get("source_quality", {})
