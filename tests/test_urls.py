@@ -1,4 +1,4 @@
-from deepresearch.utils.urls import normalize_url
+from deepresearch.utils.urls import extract_domain, normalize_url
 
 
 def test_normalize_url_removes_www_and_trailing_slash():
@@ -23,3 +23,17 @@ def test_normalize_url_adds_https_to_host_like_input():
 
 def test_normalize_url_removes_root_trailing_slash():
     assert normalize_url("https://example.com/") == "https://example.com"
+
+
+def test_extract_domain_returns_lower_host_without_www():
+    assert extract_domain("https://www.Example.com/article") == "example.com"
+    assert extract_domain("https://arxiv.org/abs/1234") == "arxiv.org"
+    assert extract_domain("http://WWW.GOV.CN/policy") == "gov.cn"
+
+
+def test_extract_domain_handles_scheme_less_url():
+    assert extract_domain("example.com/article") == "example.com"
+
+
+def test_extract_domain_handles_subdomains():
+    assert extract_domain("https://blog.openai.com/research") == "blog.openai.com"
