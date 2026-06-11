@@ -133,11 +133,11 @@ def test_with_progress_prints_label_before_running_node(capsys):
         calls.append("node-ran")
         return {**state, "done": True}
 
-    wrapped = _with_progress("[1/6] Planning research...", node)
+    wrapped = _with_progress("[3/7] Preparing evidence...", node)
     result = wrapped({"question": "AI search"})
 
     captured = capsys.readouterr()
-    assert "[1/6] Planning research..." in captured.out
+    assert "[3/7] Preparing evidence..." in captured.out
     assert calls == ["node-ran"]
     assert result["done"] is True
 
