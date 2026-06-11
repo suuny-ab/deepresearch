@@ -18,4 +18,5 @@ def test_evidence_prompt_requires_evidence_cards():
     assert "EvidenceCard" in prompt
     assert "supporting_snippet" in prompt
     assert "Do not create claims not supported by the source text" in prompt
+    assert "copy the supplied `url` value into EvidenceCard `source_url`" in prompt
     assert "https://example.com/a" in prompt

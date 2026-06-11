@@ -6,7 +6,7 @@ def build_evidence_prompt(question: str, sources: list[ExtractedSource]) -> str:
 You extract EvidenceCard objects from source text for a research report.
 Do not create claims not supported by the source text.
 Every claim must be grounded in a supporting_snippet copied or closely paraphrased from the source text.
-Each EvidenceCard must include the source URL from the supplied source_url values.
+Each EvidenceCard must copy the supplied `url` value into EvidenceCard `source_url`.
 If the source text is weak, thin, or only a search snippet, use low evidence_reliability.
 Do not infer facts, numbers, dates, or conclusions that are not explicitly supported by the source text.
 

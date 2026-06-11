@@ -16,10 +16,10 @@ class EvidenceResponse(BaseModel):
 
 
 def _dedupe_results(results: list[SearchResult]) -> list[SearchResult]:
-    seen: set[str] = set()
+    seen: set[tuple[str, str]] = set()
     deduped: list[SearchResult] = []
     for result in results:
-        key = normalize_url(result.url)
+        key = (result.subquestion_id, normalize_url(result.url))
         if key in seen:
             continue
         seen.add(key)
@@ -28,12 +28,15 @@ def _dedupe_results(results: list[SearchResult]) -> list[SearchResult]:
 
 
 def _apply_quality(results: list[SearchResult]) -> list[SearchResult]:
+    quality_results: list[SearchResult] = []
     for result in results:
         quality = classify_source(result)
-        result.source_type = quality.source_type
-        result.source_quality_score = quality.score
-        result.source_quality_reason = quality.reason
-    return results
+        quality_results.append(result.model_copy(update={
+            "source_type": quality.source_type,
+            "source_quality_score": quality.score,
+            "source_quality_reason": quality.reason,
+        }))
+    return quality_results
 
 
 def _select_by_subquestion(results: list[SearchResult], max_sources_per_subquestion: int) -> dict[str, list[SearchResult]]:
