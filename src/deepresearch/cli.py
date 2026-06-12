@@ -157,16 +157,22 @@ def main(
                 }, f, default=str, indent=2)
             console.print(f"Search results saved to {save_search}")
 
-        # --output (dry-run output)
+        # --output (dry-run or replay output)
         if output and (dry_run or replay_search):
             import json as json_module
-            with open(output, "w") as f:
-                json_module.dump({
-                    "evidence_cards": [c.model_dump() for c in result.get("evidence_cards", [])],
-                    "extracted_claims": [c.model_dump() for c in result.get("extracted_claims", [])],
-                    "evidence_metrics": result.get("evidence_metrics", {}),
-                }, f, indent=2, default=str)
-            console.print(f"Dry-run output saved to {output}")
+            output_data = {
+                "evidence_cards": [c.model_dump() for c in result.get("evidence_cards", [])],
+                "extracted_claims": [c.model_dump() for c in result.get("extracted_claims", [])],
+                "evidence_metrics": result.get("evidence_metrics", {}),
+            }
+            review = result.get("review")
+            if review is not None:
+                output_data["review"] = review.model_dump()
+            output_data["review_rewritten"] = result.get("review_rewritten", False)
+            output_data["report_status"] = result.get("report_status")
+            with open(output, "w", encoding="utf-8") as f:
+                json_module.dump(output_data, f, indent=2, default=str)
+            console.print(f"Benchmark output saved to {output}")
 
         if dry_run:
             console.print("\n[Dry run] Evidence extraction complete.\n")
