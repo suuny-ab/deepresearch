@@ -66,17 +66,6 @@ def format_verbose_summary(state: dict[str, Any]) -> str:
         else:
             lines.append("- None")
 
-    notes = state.get("notes", [])
-    lines.extend(["", "Research notes:"])
-    if notes:
-        for note in notes:
-            lines.append(
-                f"- {note.subquestion_id}: confidence={note.confidence}, "
-                f"findings={len(note.key_findings)}, sources={len(note.source_urls)}"
-            )
-    else:
-        lines.append("- None")
-
     review = state.get("review")
     lines.extend(["", "Review:"])
     if review is not None:

@@ -122,12 +122,11 @@ Allowed URLs:
 def make_write_report_node(llm: LLMClient):
     def write_report(state: ResearchState) -> ResearchState:
         results = state.get("search_results", [])
-        notes = state.get("notes", [])
-        if not results or not notes:
+        if not results:
             report = (
                 f"# Research could not be completed\n\n"
                 f"The question was: {state['question']}\n\n"
-                "Insufficient search results or notes were available, so no source-backed report was generated.\n"
+                "Insufficient search results were available, so no source-backed report was generated.\n"
             )
             return {
                 **state,
@@ -142,7 +141,6 @@ def make_write_report_node(llm: LLMClient):
         prompt = build_writing_prompt(
             state["question"],
             state.get("subquestions", []),
-            notes,
             results,
             evidence_cards=state.get("evidence_cards", []),
             allowed_source_urls=allowed_urls,

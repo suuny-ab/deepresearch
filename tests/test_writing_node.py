@@ -1,7 +1,7 @@
 from tests.conftest import FakeLLMClient
 
 from deepresearch.nodes.writing import make_write_report_node
-from deepresearch.state import EvidenceCard, ResearchNote, SearchResult, SubQuestion
+from deepresearch.state import EvidenceCard, SearchResult, SubQuestion
 
 
 VALID_NUMBERED_REPORT = "# AI Search\n\nAI search is changing discovery.[1]\n\n## Sources\n\n[1] https://example.com"
@@ -12,7 +12,6 @@ def _state() -> dict:
         "question": "AI search",
         "subquestions": [SubQuestion(id="q1", question="What?", search_query="AI search", rationale="Background")],
         "search_results": [SearchResult(subquestion_id="q1", title="Source", url="https://example.com", content="Content")],
-        "notes": [ResearchNote(subquestion_id="q1", key_findings=["Finding"], source_urls=["https://example.com"], confidence="high")],
         "errors": [],
     }
 
@@ -85,25 +84,10 @@ def test_write_report_prefers_evidence_card_urls_over_raw_search_result_urls():
                 confidence="high",
             )
         ],
-        "notes": [
-            ResearchNote(
-                subquestion_id="q1",
-                key_findings=["AI search cites normalized evidence."],
-                source_urls=["https://example.com/report"],
-                confidence="high",
-            )
-        ],
         "errors": [],
     }
 
     result = node(state)
-
-    assert result["report_status"] == "success"
-    assert result["rewrite_attempted"] is False
-    assert result["validation_attempts"] == 1
-
-
-def test_write_report_prompt_lists_evidence_card_urls_not_raw_search_urls():
     llm = FakeLLMClient([
         "# AI Search\n\nAI search cites normalized evidence.[1]\n\n## Sources\n\n[1] https://example.com/report"
     ])
@@ -130,14 +114,6 @@ def test_write_report_prompt_lists_evidence_card_urls_not_raw_search_urls():
                 content_type="extracted_content",
                 corroboration_level="single_source",
                 corroborating_sources=[],
-                confidence="high",
-            )
-        ],
-        "notes": [
-            ResearchNote(
-                subquestion_id="q1",
-                key_findings=["AI search cites normalized evidence."],
-                source_urls=["https://example.com/report"],
                 confidence="high",
             )
         ],
@@ -291,10 +267,11 @@ def test_write_report_sets_failed_validation_status_when_inputs_are_missing():
     llm = FakeLLMClient([])
     node = make_write_report_node(llm)
 
-    result = node({"question": "AI search", "search_results": [], "notes": [], "errors": []})
+    result = node({"question": "AI search", "search_results": [], "errors": []})
 
     assert result["report_status"] == "failed_validation"
-    assert "Insufficient search results or notes" in result["report_markdown"]
+    assert "Insufficient search results" in result["report_markdown"]
+    assert "notes" not in result["report_markdown"]
 
 
 def test_invalid_source_failure_report_is_chinese_and_lists_invalid_and_allowed_urls():
@@ -330,7 +307,6 @@ def test_write_report_retries_once_after_validation_failure_and_succeeds():
         "question": "AI search",
         "subquestions": [SubQuestion(id="q1", question="What?", search_query="AI search", rationale="Background")],
         "search_results": [SearchResult(subquestion_id="q1", title="Source", url="https://example.com", content="Content")],
-        "notes": [ResearchNote(subquestion_id="q1", key_findings=["Finding"], source_urls=["https://example.com"], confidence="high")],
         "errors": [],
     })
 
@@ -355,7 +331,6 @@ def test_write_report_retries_once_then_saves_full_failure_report():
         "question": "AI search",
         "subquestions": [SubQuestion(id="q1", question="What?", search_query="AI search", rationale="Background")],
         "search_results": [SearchResult(subquestion_id="q1", title="Source", url="https://example.com", content="Content")],
-        "notes": [ResearchNote(subquestion_id="q1", key_findings=["Finding"], source_urls=["https://example.com"], confidence="high")],
         "errors": [],
     })
 

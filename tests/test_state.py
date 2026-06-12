@@ -1,7 +1,7 @@
 import pytest
 from pydantic import ValidationError
 
-from deepresearch.state import ResearchNote, ReviewResult, SearchResult, SubQuestion
+from deepresearch.state import ReviewResult, SearchResult, SubQuestion
 
 
 def test_subquestion_requires_core_fields():
@@ -40,16 +40,6 @@ def test_search_result_no_longer_has_source_quality_fields():
     assert not hasattr(result, "source_type")
     assert not hasattr(result, "source_quality_score")
     assert not hasattr(result, "source_quality_reason")
-
-
-def test_research_note_rejects_invalid_confidence():
-    with pytest.raises(ValidationError):
-        ResearchNote(
-            subquestion_id="q1",
-            key_findings=["Finding"],
-            source_urls=["https://example.com"],
-            confidence="certain",
-        )
 
 
 def test_review_result_score_range():

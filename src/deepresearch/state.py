@@ -68,13 +68,6 @@ class EvidenceCard(BaseModel):
     confidence: Confidence
 
 
-class ResearchNote(BaseModel):
-    subquestion_id: str
-    key_findings: list[str]
-    source_urls: list[str]
-    confidence: Confidence
-
-
 class ReviewResult(BaseModel):
     passed: bool
     score: int = Field(ge=0, le=100)
@@ -89,7 +82,6 @@ class ResearchState(TypedDict, total=False):
     extracted_claims: list[ExtractedClaim]
     evidence_cards: list[EvidenceCard]
     evidence_metrics: dict[str, Any]
-    notes: list[ResearchNote]
     report_markdown: str
     report_status: Literal["success", "failed_validation"]
     rewrite_attempted: bool

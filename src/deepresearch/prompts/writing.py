@@ -1,10 +1,9 @@
-from deepresearch.state import EvidenceCard, ResearchNote, SearchResult, SubQuestion
+from deepresearch.state import EvidenceCard, SearchResult, SubQuestion
 
 
 def build_writing_prompt(
     question: str,
     subquestions: list[SubQuestion],
-    notes: list[ResearchNote],
     results: list[SearchResult],
     evidence_cards: list[EvidenceCard] | None = None,
     allowed_source_urls: set[str] | None = None,
@@ -64,8 +63,6 @@ Original question:
 Subquestions:
 {[item.model_dump() for item in subquestions]}
 
-Research notes:
-{[item.model_dump() for item in notes]}
 
 Allowed source URLs:
 {allowed_urls}

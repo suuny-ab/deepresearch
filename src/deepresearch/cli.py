@@ -12,7 +12,6 @@ from deepresearch.nodes.prepare_evidence import make_prepare_evidence_node
 from deepresearch.nodes.reviewing import make_review_report_node
 from deepresearch.nodes.saving import make_save_report_node
 from deepresearch.nodes.searching import make_search_web_node
-from deepresearch.nodes.synthesizing import make_synthesize_notes_node
 from deepresearch.nodes.writing import make_write_report_node
 from deepresearch.verbose import format_verbose_summary
 
@@ -41,19 +40,17 @@ def _build_app(config: AppConfig, dry_run: bool = False, replay_search: bool = F
     plan_research = make_plan_research_node(llm, config.max_subquestions)
     search_web = make_search_web_node(search, config.results_per_query)
     prepare_evidence = make_prepare_evidence_node(search, llm, max_sources_per_subquestion=3)
-    synthesize_notes = make_synthesize_notes_node(llm)
     write_report = make_write_report_node(llm)
     review_report = make_review_report_node(llm)
     save_report = make_save_report_node(config.output_dir)
 
     return create_research_app(
-        plan_research=_with_progress("[1/7] Planning research...", plan_research),
-        search_web=_with_progress("[2/7] Searching web...", search_web),
-        prepare_evidence=_with_progress("[3/7] Preparing evidence...", prepare_evidence),
-        synthesize_notes=_with_progress("[4/7] Synthesizing notes...", synthesize_notes),
-        write_report=_with_progress("[5/7] Writing report...", write_report),
-        review_report=_with_progress("[6/7] Reviewing report...", review_report),
-        save_report=_with_progress("[7/7] Saving report...", save_report),
+        plan_research=_with_progress("[1/6] Planning research...", plan_research),
+        search_web=_with_progress("[2/6] Searching web...", search_web),
+        prepare_evidence=_with_progress("[3/6] Preparing evidence...", prepare_evidence),
+        write_report=_with_progress("[4/6] Writing report...", write_report),
+        review_report=_with_progress("[5/6] Reviewing report...", review_report),
+        save_report=_with_progress("[6/6] Saving report...", save_report),
         dry_run=dry_run,
         replay_search=replay_search,
     )

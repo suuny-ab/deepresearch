@@ -8,7 +8,7 @@ def test_writing_prompt_requires_numbered_citations_and_lists_allowed_urls():
         SearchResult(subquestion_id="q1", title="Source B", url="https://example.com/b", content="Content B"),
     ]
 
-    prompt = build_writing_prompt("AI search", [], [], results)
+    prompt = build_writing_prompt("AI search", [], results)
 
     assert "Use numbered citations in the body" in prompt
     assert "Do not put raw URLs in the body" in prompt
@@ -45,7 +45,7 @@ def test_writing_prompt_uses_evidence_card_urls_when_provided():
         )
     ]
 
-    prompt = build_writing_prompt("AI search", [], [], results, evidence_cards=evidence_cards)
+    prompt = build_writing_prompt("AI search", [], results, evidence_cards=evidence_cards)
 
     assert "https://example.com/report" in prompt
     assert "https://www.example.com/report?utm_source=x" not in prompt
@@ -68,7 +68,7 @@ def test_writing_prompt_includes_corroboration_guidance():
         )
     ]
 
-    prompt = build_writing_prompt("AI search", [], [], results, evidence_cards=evidence_cards)
+    prompt = build_writing_prompt("AI search", [], results, evidence_cards=evidence_cards)
 
     assert "supported by multiple independent sources" in prompt
     assert "single source" in prompt
