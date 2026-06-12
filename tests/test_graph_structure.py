@@ -30,6 +30,21 @@ def test_node_sequence_is_fixed_mvp_pipeline():
     ]
 
 
+def test_replay_search_graph_skips_plan_and_search(tmp_path):
+    graph = build_research_graph(
+        plan_research=lambda state: {**state},
+        search_web=lambda state: {**state},
+        prepare_evidence=lambda state: {**state, "evidence_cards": [], "evidence_metrics": {}},
+        synthesize_notes=lambda state: {**state, "notes": []},
+        write_report=lambda state: {**state, "report_markdown": "# R"},
+        review_report=lambda state: {**state, "review": None},
+        save_report=lambda state: {**state, "output_path": str(tmp_path / "r.md")},
+        replay_search=True,
+    )
+    result = graph.invoke({"question": "AI search", "errors": []})
+    assert result["evidence_cards"] == []
+
+
 def test_graph_compiles_with_fake_nodes(tmp_path):
     graph = build_research_graph(
         plan_research=lambda state: {**state, "subquestions": []},
