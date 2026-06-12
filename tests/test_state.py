@@ -180,6 +180,44 @@ def test_extracted_source_no_longer_has_source_quality_fields():
     assert not hasattr(source, "source_quality_reason")
 
 
+def test_extracted_claim_has_no_corroboration_fields():
+    from deepresearch.state import ExtractedClaim
+
+    claim = ExtractedClaim(
+        id="e1",
+        subquestion_id="q1",
+        claim="RAG remains important.",
+        source_url="https://example.com/a",
+        source_title="Source A",
+        supporting_snippet="RAG remains important.",
+        content_type="extracted_content",
+        confidence="high",
+    )
+
+    assert claim.claim == "RAG remains important."
+    assert not hasattr(claim, "corroboration_level")
+    assert not hasattr(claim, "corroborating_sources")
+
+
+def test_research_state_accepts_extracted_claims():
+    from deepresearch.state import ExtractedClaim, ResearchState
+
+    state: ResearchState = {
+        "question": "AI search",
+        "extracted_claims": [
+            ExtractedClaim(
+                id="e1", subquestion_id="q1",
+                claim="RAG remains important.",
+                source_url="https://example.com/a", source_title="Source A",
+                supporting_snippet="RAG remains important.",
+                content_type="extracted_content", confidence="high",
+            )
+        ],
+    }
+
+    assert len(state["extracted_claims"]) == 1
+
+
 def test_research_state_no_longer_has_extracted_sources():
     from deepresearch.state import ResearchState
 

@@ -34,6 +34,18 @@ class SearchResult(BaseModel):
     published_date: str | None = None
 
 
+class ExtractedClaim(BaseModel):
+    """Phase 1 output -- raw claims extracted from sources, no cross-validation."""
+    id: str
+    subquestion_id: str
+    claim: str
+    source_url: str
+    source_title: str
+    supporting_snippet: str
+    content_type: Literal["search_content", "extracted_content"]
+    confidence: Confidence
+
+
 class ExtractedSource(BaseModel):
     subquestion_id: str
     url: str
@@ -74,6 +86,7 @@ class ResearchState(TypedDict, total=False):
     question: str
     subquestions: list[SubQuestion]
     search_results: list[SearchResult]
+    extracted_claims: list[ExtractedClaim]
     evidence_cards: list[EvidenceCard]
     evidence_metrics: dict[str, Any]
     notes: list[ResearchNote]
