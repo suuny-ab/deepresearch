@@ -46,8 +46,8 @@ extract as many as each source genuinely contains.
 Rules:
 - Each claim MUST include a supporting_snippet from the source text
 - Prefer specific, verifiable claims over vague generalizations
-- Do NOT check other sources for corroboration — that is a separate step
-- Do NOT assign any reliability or corroboration level
+- Do NOT check other sources to see if they confirm the same claim — that is a separate step
+- Do NOT assign any reliability rating or check whether other sources agree
 - Assign a confidence to each claim based on the source text quality:
   - "high": well-supported with specific evidence
   - "medium": reasonably supported
