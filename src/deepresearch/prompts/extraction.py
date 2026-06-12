@@ -42,6 +42,8 @@ A claim is a specific factual assertion, finding, or argument that can be
 traced to a particular passage in a source text. Extract every distinct,
 citable claim from every source. There is no minimum or maximum —
 extract as many as each source genuinely contains.
+Extract at least 2-4 claims per source on average.
+Sources with rich content may support more; thin sources may support fewer.
 
 Rules:
 - Each claim MUST include a supporting_snippet from the source text
