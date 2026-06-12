@@ -7,6 +7,7 @@ def build_writing_prompt(
     results: list[SearchResult],
     evidence_cards: list[EvidenceCard] | None = None,
     allowed_source_urls: set[str] | None = None,
+    review_feedback: str | None = None,
 ) -> str:
     if allowed_source_urls is not None:
         allowed_urls = sorted(allowed_source_urls)
@@ -14,9 +15,18 @@ def build_writing_prompt(
         allowed_urls = sorted({card.source_url for card in evidence_cards})
     else:
         allowed_urls = sorted({item.url for item in results})
+
+    feedback_section = ""
+    if review_feedback:
+        feedback_section = f"""
+Previous review identified the following issues with your draft.
+Address each issue in the rewrite:
+
+{review_feedback}
+"""
     return f"""
 请使用中文撰写结构化 Markdown 深度研究报告，除非用户问题使用其他语言。
-
+{feedback_section}
 引用规则必须严格遵守：
 1. 正文中的每个关键论点必须使用编号引用，例如 [1]、[2]。
 2. 正文中不要出现裸 URL。
