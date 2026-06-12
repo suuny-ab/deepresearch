@@ -1,13 +1,57 @@
-from deepresearch.state import ExtractedSource
+from deepresearch.state import ExtractedSource, SubQuestion
 
 
-def build_evidence_prompt(question: str, sources: list[ExtractedSource]) -> str:
+def build_evidence_prompt(
+    question: str,
+    sources: list[ExtractedSource],
+    subquestions: list[SubQuestion],
+) -> str:
+    sq_map: dict[str, str] = {
+        sq.id: sq.question for sq in subquestions
+    }
+
+    groups: dict[str, list[ExtractedSource]] = {}
+    for source in sources:
+        key = source.subquestion_id
+        groups.setdefault(key, []).append(source)
+
+    subquestion_lines = []
+    if subquestions:
+        subquestion_lines.append("Research subquestions:")
+        for sq in subquestions:
+            subquestion_lines.append(f"- [{sq.id}] {sq.question}")
+        subquestion_lines.append("")
+
+    source_lines = []
+    source_lines.append("Sources (grouped by subquestion):")
+    for sq_id, group_sources in groups.items():
+        sq_question = sq_map.get(sq_id, sq_id)
+        source_lines.append(f"--- {sq_id}: {sq_question} ---")
+        for source in group_sources:
+            source_lines.append(f"  URL: {source.url}")
+            source_lines.append(f"  Title: {source.title}")
+            source_lines.append(f"  Content ({source.format}): {source.raw_content}")
+            source_lines.append("")
+    source_lines.append("---")
+
+    grouped_sources = "\n".join(source_lines)
+    subquestion_overview = "\n".join(subquestion_lines)
+
     return f"""
 You extract EvidenceCard objects from source text for a research report.
 Do not create claims not supported by the source text.
 Every claim must be grounded in a supporting_snippet copied or closely paraphrased from the source text.
 Each EvidenceCard must copy the supplied `url` value into EvidenceCard `source_url`.
 If the source text is weak, thin, or only a search snippet, use low confidence.
+
+The sources below are organized by subquestion. Each source was retrieved
+to answer a specific subquestion, shown in the group header.
+Use this structure to understand the research intent behind each source
+when deciding whether two sources from DIFFERENT subquestions are truly
+corroborating the same claim, or merely discussing related topics from
+different angles.
+
+{subquestion_overview}
 
 For each claim you extract, also check ALL other supplied sources
 (even those from different subquestions that cover related topics)
@@ -43,6 +87,5 @@ Return only JSON in this exact shape:
 Original question:
 {question}
 
-Sources:
-{[source.model_dump() for source in sources]}
+{grouped_sources}
 """.strip()
