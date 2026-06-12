@@ -58,18 +58,27 @@ def test_graph_compiles_with_fake_nodes(tmp_path):
 
 def test_review_conditional_edge_routes_to_write_when_score_below_70(tmp_path):
     """When review score < 70 and no rewrite happened yet, route to write_report."""
-    rewrite_triggered = []
+    write_calls = []
+    review_calls = []
 
     def tracking_write(state):
-        rewrite_triggered.append(True)
-        return {**state, "report_markdown": "# Rewritten", "review_feedback": None, "review_rewritten": True}
+        write_calls.append(True)
+        if state.get("review_feedback"):
+            return {**state, "report_markdown": "# Rewritten", "review_feedback": None, "review_rewritten": True}
+        return {**state, "report_markdown": "# Initial"}
+
+    def mock_review(state):
+        review_calls.append(True)
+        if not state.get("review_rewritten"):
+            return {**state, "review": ReviewResult(passed=False, score=50, issues=["Bad"], suggestions=["Fix it"]), "review_feedback": "Issues: Bad"}
+        return {**state, "review": ReviewResult(passed=False, score=50, issues=["Bad"], suggestions=["Fix it"])}
 
     graph = build_research_graph(
         plan_research=lambda state: {**state, "subquestions": []},
         search_web=lambda state: {**state, "search_results": []},
         prepare_evidence=lambda state: {**state, "evidence_cards": [], "evidence_metrics": {}},
         write_report=tracking_write,
-        review_report=lambda state: {**state, "review": ReviewResult(passed=False, score=50, issues=["Bad"], suggestions=["Fix it"])},
+        review_report=mock_review,
         save_report=lambda state: {**state, "output_path": str(tmp_path / "report.md")},
     )
 
@@ -80,17 +89,18 @@ def test_review_conditional_edge_routes_to_write_when_score_below_70(tmp_path):
         "review_rewritten": False,
     })
 
-    assert len(rewrite_triggered) == 1
+    assert len(write_calls) == 2  # Initial write + rewrite
+    assert len(review_calls) == 2  # Review after initial + review after rewrite
     assert result["report_markdown"] == "# Rewritten"
 
 
 def test_review_conditional_edge_skips_rewrite_when_score_above_70(tmp_path):
     """When review score >= 70, route directly to save_report."""
-    rewrite_triggered = []
+    write_calls = []
 
     def tracking_write(state):
-        rewrite_triggered.append(True)
-        return state
+        write_calls.append(True)
+        return {**state, "report_markdown": "# Report"}
 
     graph = build_research_graph(
         plan_research=lambda state: {**state, "subquestions": []},
@@ -108,24 +118,29 @@ def test_review_conditional_edge_skips_rewrite_when_score_above_70(tmp_path):
         "review_rewritten": False,
     })
 
-    assert len(rewrite_triggered) == 1  # Only the initial write, no rewrite
+    assert len(write_calls) == 1  # Only the initial write, no rewrite
     assert result["review"].score == 85
 
 
 def test_review_conditional_edge_skips_rewrite_when_already_rewritten(tmp_path):
     """When review_rewritten is True, don't rewrite again even if score < 70."""
-    write_count = []
+    write_calls = []
 
     def counting_write(state):
-        write_count.append(True)
+        write_calls.append(True)
         return {**state, "report_markdown": "# Report"}
+
+    def mock_review(state):
+        if not state.get("review_rewritten"):
+            return {**state, "review": ReviewResult(passed=False, score=50, issues=["Bad"], suggestions=["Fix it"]), "review_feedback": "Issues: Bad"}
+        return {**state, "review": ReviewResult(passed=False, score=50, issues=["Bad"], suggestions=["Fix it"])}
 
     graph = build_research_graph(
         plan_research=lambda state: {**state, "subquestions": []},
         search_web=lambda state: {**state, "search_results": []},
         prepare_evidence=lambda state: {**state, "evidence_cards": [], "evidence_metrics": {}},
         write_report=counting_write,
-        review_report=lambda state: {**state, "review": ReviewResult(passed=False, score=50, issues=["Bad"], suggestions=[])},
+        review_report=mock_review,
         save_report=lambda state: {**state, "output_path": str(tmp_path / "report.md")},
     )
 
@@ -136,4 +151,4 @@ def test_review_conditional_edge_skips_rewrite_when_already_rewritten(tmp_path):
         "review_rewritten": True,  # Already rewritten
     })
 
-    assert len(write_count) == 1  # Only initial write
+    assert len(write_calls) == 1  # Only initial write
