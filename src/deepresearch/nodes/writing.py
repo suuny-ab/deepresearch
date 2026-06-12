@@ -136,6 +136,7 @@ def make_write_report_node(llm: LLMClient):
 
         allowed_urls = _allowed_source_urls(state)
         review_feedback = state.get("review_feedback")
+        is_review_rewrite = review_feedback is not None
         prompt = build_writing_prompt(
             state["question"],
             state.get("subquestions", []),
@@ -167,8 +168,7 @@ def make_write_report_node(llm: LLMClient):
                 "rewrite_attempted": False,
                 "validation_attempts": 1,
                 "validation_failures": [],
-                "review_feedback": None,
-                "review_rewritten": True,
+                **({} if not is_review_rewrite else {"review_feedback": None, "review_rewritten": True}),
             }
 
         first_invalid_urls = _invalid_urls_for_reason(
@@ -195,8 +195,7 @@ def make_write_report_node(llm: LLMClient):
                 "rewrite_attempted": True,
                 "validation_attempts": 1,
                 "validation_failures": [first_validation.to_dict()],
-                "review_feedback": None,
-                "review_rewritten": True,
+                **({} if not is_review_rewrite else {"review_feedback": None, "review_rewritten": True}),
             }
         second_validation = validate_citations(rewritten_report, allowed_urls)
 
@@ -209,8 +208,7 @@ def make_write_report_node(llm: LLMClient):
                 "rewrite_attempted": True,
                 "validation_attempts": 2,
                 "validation_failures": [first_validation.to_dict()],
-                "review_feedback": None,
-                "review_rewritten": True,
+                **({} if not is_review_rewrite else {"review_feedback": None, "review_rewritten": True}),
             }
 
         second_invalid_urls = _invalid_urls_for_reason(
@@ -232,8 +230,7 @@ def make_write_report_node(llm: LLMClient):
             "rewrite_attempted": True,
             "validation_attempts": 2,
             "validation_failures": [first_validation.to_dict(), second_validation.to_dict()],
-            "review_feedback": None,
-            "review_rewritten": True,
+            **({} if not is_review_rewrite else {"review_feedback": None, "review_rewritten": True}),
         }
 
     return write_report
