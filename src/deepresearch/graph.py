@@ -1,4 +1,5 @@
 from collections.abc import Callable
+from typing import Literal
 
 from langgraph.graph import END, START, StateGraph
 
@@ -48,7 +49,19 @@ def build_research_graph(
         else:
             graph.add_edge("prepare_evidence", "write_report")
             graph.add_edge("write_report", "review_report")
-            graph.add_edge("review_report", "save_report")
+
+            def _review_router(state: ResearchState) -> Literal["write_report", "save_report"]:
+                if state.get("report_status") == "failed_validation":
+                    return "save_report"
+                if state.get("review_feedback") is not None:
+                    return "write_report"
+                return "save_report"
+
+            graph.add_conditional_edges(
+                "review_report",
+                _review_router,
+                {"write_report": "write_report", "save_report": "save_report"},
+            )
             graph.add_edge("save_report", END)
 
     return graph.compile()
