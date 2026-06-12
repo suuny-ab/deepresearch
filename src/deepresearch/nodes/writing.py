@@ -136,7 +136,6 @@ def make_write_report_node(llm: LLMClient):
 
         allowed_urls = _allowed_source_urls(state)
         review_feedback = state.get("review_feedback")
-        is_rewrite = review_feedback is not None
         prompt = build_writing_prompt(
             state["question"],
             state.get("subquestions", []),
