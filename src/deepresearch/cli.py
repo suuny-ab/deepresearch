@@ -210,6 +210,10 @@ def main(
         console.print(Markdown(result.get("report_markdown", "")))
 
         if verbose:
+            if result.get("review_rewritten"):
+                review = result.get("review")
+                score = review.score if review else "N/A"
+                console.print(f"\n[Review] Rewrite triggered. Final score: {score}")
             console.print("\n" + format_verbose_summary(result))
     except ConfigError as exc:
         console.print(f"Error: {exc}")
