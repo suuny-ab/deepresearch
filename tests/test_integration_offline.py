@@ -33,10 +33,17 @@ class FakeSearchClient:
 
 def test_full_graph_runs_offline(tmp_path):
     llm = FakeLLMClient([
+        # plan_research
         '{"subquestions":[{"id":"q1","question":"What is AI search?","search_query":"AI search","rationale":"Background"}]}',
+        # Phase 1: extraction
+        '{"claims":[{"id":"e1","subquestion_id":"q1","claim":"AI search uses generated answers.","source_url":"https://example.com/source","source_title":"Source","supporting_snippet":"AI search uses generated answers.","content_type":"extracted_content","confidence":"high"}]}',
+        # Phase 2 q1: validation
         '{"evidence_cards":[{"id":"e1","subquestion_id":"q1","claim":"AI search uses generated answers.","source_url":"https://example.com/source","source_title":"Source","supporting_snippet":"AI search uses generated answers.","content_type":"extracted_content","corroboration_level":"single_source","corroborating_sources":[],"confidence":"high"}]}',
+        # synthesize_notes
         '{"notes":[{"subquestion_id":"q1","key_findings":["AI search uses generated answers."],"source_urls":["https://example.com/source"],"confidence":"high"}]}',
+        # write_report
         '# AI Search\n\nAI search uses generated answers.[1]\n\n## Sources\n\n[1] https://example.com/source',
+        # review_report
         '{"passed":true,"score":90,"issues":[],"suggestions":[]}',
     ])
     search = FakeSearchClient()
