@@ -33,8 +33,10 @@ def make_review_report_node(llm: LLMClient):
             errors.append(f"Review JSON parse failed: {exc}")
             review = ReviewResult(passed=False, score=0, issues=["Review parsing failed"], suggestions=["Inspect the report manually"])
 
+        is_error_review = review.issues and review.issues[0] in ("LLM call failed", "Review parsing failed")
+
         review_feedback = None
-        if review.score < 70 and not state.get("review_rewritten", False):
+        if review.score < 70 and not state.get("review_rewritten", False) and not is_error_review:
             review_feedback = _format_review_feedback(review)
 
         return {**state, "review": review, "review_feedback": review_feedback, "errors": errors}
