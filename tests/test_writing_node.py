@@ -352,3 +352,46 @@ def test_write_report_retries_once_then_saves_full_failure_report():
     assert "bare body URLs:" in report
     assert "available source URLs:" in report
     assert "### 第 2 次诊断" in report
+
+
+def test_write_report_includes_review_feedback_in_rewrite_prompt():
+    """When review_feedback is provided, it should appear in the LLM prompt."""
+    from tests.conftest import FakeLLMClient
+
+    llm = FakeLLMClient([
+        "# AI Search\n\nAI search is changing discovery.[1]\n\n## Sources\n\n[1] https://example.com"
+    ])
+    node = make_write_report_node(llm)
+
+    result = node({
+        "question": "AI search",
+        "subquestions": [SubQuestion(id="q1", question="What?", search_query="AI search", rationale="Background")],
+        "search_results": [SearchResult(subquestion_id="q1", title="Source", url="https://example.com", content="Content")],
+        "evidence_cards": [],
+        "review_feedback": "Issues: The report lacks sufficient citations.\nSuggestions: Add more numbered references.",
+        "errors": [],
+    })
+
+    prompt = llm.prompts[0]
+    assert "lacks sufficient citations" in prompt
+    assert result["report_status"] == "success"
+
+
+def test_write_report_clears_review_feedback_after_consumption():
+    """After write_report consumes review_feedback, it should be cleared from state."""
+    llm = FakeLLMClient([
+        "# AI Search\n\nAI search is changing discovery.[1]\n\n## Sources\n\n[1] https://example.com"
+    ])
+    node = make_write_report_node(llm)
+
+    result = node({
+        "question": "AI search",
+        "subquestions": [SubQuestion(id="q1", question="What?", search_query="AI search", rationale="Background")],
+        "search_results": [SearchResult(subquestion_id="q1", title="Source", url="https://example.com", content="Content")],
+        "evidence_cards": [],
+        "review_feedback": "Issues: Not enough citations.",
+        "errors": [],
+    })
+
+    assert result.get("review_feedback") is None
+    assert result.get("review_rewritten") is True
