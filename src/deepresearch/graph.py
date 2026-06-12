@@ -26,6 +26,7 @@ def build_research_graph(
     write_report: Node,
     review_report: Node,
     save_report: Node,
+    dry_run: bool = False,
 ):
     graph = StateGraph(ResearchState)
     graph.add_node("plan_research", plan_research)
@@ -39,11 +40,16 @@ def build_research_graph(
     graph.add_edge(START, "plan_research")
     graph.add_edge("plan_research", "search_web")
     graph.add_edge("search_web", "prepare_evidence")
-    graph.add_edge("prepare_evidence", "synthesize_notes")
-    graph.add_edge("synthesize_notes", "write_report")
-    graph.add_edge("write_report", "review_report")
-    graph.add_edge("review_report", "save_report")
-    graph.add_edge("save_report", END)
+
+    if dry_run:
+        graph.add_edge("prepare_evidence", END)
+    else:
+        graph.add_edge("prepare_evidence", "synthesize_notes")
+        graph.add_edge("synthesize_notes", "write_report")
+        graph.add_edge("write_report", "review_report")
+        graph.add_edge("review_report", "save_report")
+        graph.add_edge("save_report", END)
+
     return graph.compile()
 
 
@@ -56,6 +62,7 @@ def create_research_app(
     write_report: Node,
     review_report: Node,
     save_report: Node,
+    dry_run: bool = False,
 ):
     return build_research_graph(
         plan_research=plan_research,
@@ -65,4 +72,5 @@ def create_research_app(
         write_report=write_report,
         review_report=review_report,
         save_report=save_report,
+        dry_run=dry_run,
     )
