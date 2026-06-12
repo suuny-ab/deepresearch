@@ -72,5 +72,6 @@ def test_full_graph_runs_offline(tmp_path):
         "extracted_sources": 1,
         "evidence_cards": 1,
         "corroboration": {"single_source": 1},
+        "confidence": {"high": 1},
     }
     assert "# AI Search" in result["report_markdown"]

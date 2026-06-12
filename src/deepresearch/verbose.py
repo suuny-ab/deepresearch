@@ -66,6 +66,15 @@ def format_verbose_summary(state: dict[str, Any]) -> str:
         else:
             lines.append("- None")
 
+        lines.extend(["", "Evidence confidence:"])
+        confidence = evidence_metrics.get("confidence", {})
+        if confidence:
+            for key in ["high", "medium", "low"]:
+                value = confidence.get(key, 0)
+                lines.append(f"- {key}: {value}")
+        else:
+            lines.append("- None")
+
     review = state.get("review")
     lines.extend(["", "Review:"])
     if review is not None:

@@ -162,6 +162,7 @@ def _build_metrics(raw, deduped, extracted_sources, evidence_cards):
         "extracted_sources": len(extracted_sources),
         "evidence_cards": len(evidence_cards),
         "corroboration": dict(Counter(c.corroboration_level for c in evidence_cards)),
+        "confidence": dict(Counter(c.confidence for c in evidence_cards)),
     }
 
 

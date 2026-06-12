@@ -184,6 +184,15 @@ def main(
                 for i, card in enumerate(cards, start=1):
                     claim_snippet = card.claim[:100] + "..." if len(card.claim) > 100 else card.claim
                     console.print(f"{i}. [{card.id}] {claim_snippet} (corroboration: {card.corroboration_level}, sources: {len(card.corroborating_sources)})")
+            console.print()
+            confidence = evidence_metrics.get("confidence", {})
+            if confidence:
+                console.print("Evidence confidence:")
+                for key in ["high", "medium", "low"]:
+                    if key in confidence:
+                        console.print(f"- {key}: {confidence[key]}")
+            if verbose:
+                console.print("\n" + format_verbose_summary(result))
             return
 
         if result.get("report_status") == "failed_validation":

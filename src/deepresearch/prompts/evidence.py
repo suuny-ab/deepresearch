@@ -48,8 +48,10 @@ IMPORTANT:
 - Do NOT create new claims. Only validate the claims provided above.
 - Sources in this subquestion are already from different domains —
   no need to check domain diversity.
-- Preserve all fields from the input claims (id, claim, source_url,
-  source_title, supporting_snippet, content_type, confidence)
+- Preserve all fields from the input claims: id, claim, source_url,
+  source_title, supporting_snippet. IMPORTANT: content_type MUST be
+  exactly "extracted_content" or "search_content" — do NOT invent
+  other values. Preserve confidence as-is.
 
 Return only JSON:
 {{"evidence_cards":[{{"id":"e1","subquestion_id":"q1","claim":"...","source_url":"https://...","source_title":"...","supporting_snippet":"...","content_type":"extracted_content","corroboration_level":"single_source|weakly_corroborated|strongly_corroborated","corroborating_sources":["https://other.example/..."],"confidence":"low|medium|high"}}]}}

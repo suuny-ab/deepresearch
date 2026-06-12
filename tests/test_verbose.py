@@ -90,6 +90,7 @@ def test_format_verbose_summary_includes_evidence_metrics():
             "extracted_sources": 5,
             "evidence_cards": 9,
             "corroboration": {"strongly_corroborated": 3, "weakly_corroborated": 4, "single_source": 2},
+            "confidence": {"high": 5, "medium": 3, "low": 1},
         },
     }
 
@@ -104,6 +105,10 @@ def test_format_verbose_summary_includes_evidence_metrics():
     assert "strongly corroborated: 3" in summary
     assert "weakly corroborated: 4" in summary
     assert "single source: 2" in summary
+    assert "Evidence confidence:" in summary
+    assert "high: 5" in summary
+    assert "medium: 3" in summary
+    assert "low: 1" in summary
     assert "Source quality:" not in summary
     assert "Evidence reliability:" not in summary
 
