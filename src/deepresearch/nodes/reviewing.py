@@ -7,7 +7,7 @@ from deepresearch.utils.json import JSONParseError, parse_json_object
 def make_review_report_node(llm: LLMClient):
     def review_report(state: ResearchState) -> ResearchState:
         errors = list(state.get("errors", []))
-        prompt = build_reviewing_prompt(state["question"], state.get("report_markdown", ""), state.get("search_results", []))
+        prompt = build_reviewing_prompt(state["question"], state.get("report_markdown", ""), state.get("evidence_cards", []))
         text = llm.complete(prompt)
         try:
             review = parse_json_object(text, ReviewResult)
