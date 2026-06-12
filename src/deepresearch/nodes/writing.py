@@ -8,6 +8,13 @@ def _format_urls(urls: list[str]) -> str:
     return "\n".join(f"- {url}" for url in urls) if urls else "- None"
 
 
+def _review_cleanup(is_review_rewrite: bool) -> dict:
+    """Return state updates to clear review feedback after consuming it in a rewrite."""
+    if is_review_rewrite:
+        return {"review_feedback": None, "review_rewritten": True}
+    return {}
+
+
 def _format_numbers(numbers: set[int]) -> str:
     return ", ".join(str(number) for number in sorted(numbers)) if numbers else "None"
 
@@ -168,7 +175,7 @@ def make_write_report_node(llm: LLMClient):
                 "rewrite_attempted": False,
                 "validation_attempts": 1,
                 "validation_failures": [],
-                **({} if not is_review_rewrite else {"review_feedback": None, "review_rewritten": True}),
+                **_review_cleanup(is_review_rewrite),
             }
 
         first_invalid_urls = _invalid_urls_for_reason(
@@ -195,7 +202,7 @@ def make_write_report_node(llm: LLMClient):
                 "rewrite_attempted": True,
                 "validation_attempts": 1,
                 "validation_failures": [first_validation.to_dict()],
-                **({} if not is_review_rewrite else {"review_feedback": None, "review_rewritten": True}),
+                **_review_cleanup(is_review_rewrite),
             }
         second_validation = validate_citations(rewritten_report, allowed_urls)
 
@@ -208,7 +215,7 @@ def make_write_report_node(llm: LLMClient):
                 "rewrite_attempted": True,
                 "validation_attempts": 2,
                 "validation_failures": [first_validation.to_dict()],
-                **({} if not is_review_rewrite else {"review_feedback": None, "review_rewritten": True}),
+                **_review_cleanup(is_review_rewrite),
             }
 
         second_invalid_urls = _invalid_urls_for_reason(
@@ -230,7 +237,7 @@ def make_write_report_node(llm: LLMClient):
             "rewrite_attempted": True,
             "validation_attempts": 2,
             "validation_failures": [first_validation.to_dict(), second_validation.to_dict()],
-            **({} if not is_review_rewrite else {"review_feedback": None, "review_rewritten": True}),
+            **_review_cleanup(is_review_rewrite),
         }
 
     return write_report

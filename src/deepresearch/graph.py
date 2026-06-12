@@ -17,6 +17,15 @@ NODE_SEQUENCE = [
 Node = Callable[[ResearchState], ResearchState]
 
 
+def _review_router(state: ResearchState) -> Literal["write_report", "save_report"]:
+    """Route after review_report: rewrite if feedback is present, otherwise save."""
+    if state.get("report_status") == "failed_validation":
+        return "save_report"
+    if state.get("review_feedback"):
+        return "write_report"
+    return "save_report"
+
+
 def build_research_graph(
     *,
     plan_research: Node,
@@ -49,14 +58,6 @@ def build_research_graph(
         else:
             graph.add_edge("prepare_evidence", "write_report")
             graph.add_edge("write_report", "review_report")
-
-            def _review_router(state: ResearchState) -> Literal["write_report", "save_report"]:
-                if state.get("report_status") == "failed_validation":
-                    return "save_report"
-                if state.get("review_feedback") is not None:
-                    return "write_report"
-                return "save_report"
-
             graph.add_conditional_edges(
                 "review_report",
                 _review_router,

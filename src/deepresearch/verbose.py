@@ -84,6 +84,8 @@ def format_verbose_summary(state: dict[str, Any]) -> str:
         lines.append(f"- suggestions: {len(review.suggestions)}")
     else:
         lines.append("- None")
+    if state.get("review_rewritten"):
+        lines.append("- rewrite triggered: True")
 
     lines.extend(["", "Report validation:"])
     lines.append(f"- rewrite_attempted: {state.get('rewrite_attempted', False)}")

@@ -139,3 +139,24 @@ def test_format_verbose_summary_derives_query_count_from_search_queries_when_met
 
     assert "subquestions: 1" in summary
     assert "total queries: 2" in summary
+
+
+def test_format_verbose_summary_includes_review_rewrite_when_triggered():
+    state = {
+        "review": ReviewResult(passed=True, score=92, issues=[], suggestions=[]),
+        "review_rewritten": True,
+    }
+
+    summary = format_verbose_summary(state)
+
+    assert "- rewrite triggered: True" in summary
+
+
+def test_format_verbose_summary_omits_rewrite_when_not_triggered():
+    state = {
+        "review": ReviewResult(passed=True, score=92, issues=[], suggestions=[]),
+    }
+
+    summary = format_verbose_summary(state)
+
+    assert "rewrite triggered" not in summary
