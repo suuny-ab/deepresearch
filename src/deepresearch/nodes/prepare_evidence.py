@@ -239,7 +239,8 @@ def make_prepare_evidence_node(
                     extracted_sources.append(src)
 
         prompt = build_evidence_prompt(
-            state.get("question", ""), extracted_sources
+            state.get("question", ""), extracted_sources,
+            subquestions=state.get("subquestions", []),
         )
         try:
             parsed = parse_json_object(llm.complete(prompt), EvidenceResponse)
