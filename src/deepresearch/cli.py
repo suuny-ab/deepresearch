@@ -129,17 +129,18 @@ def main(
         # --replay-search mode
         if replay_search:
             import json as json_module
+            from deepresearch.state import SearchResult, SubQuestion
             try:
                 with open(replay_search) as f:
                     saved = json_module.load(f)
             except (FileNotFoundError, json_module.JSONDecodeError, KeyError) as exc:
                 console.print(f"Error loading replay search file: {exc}")
                 raise typer.Exit(code=1)
-            research_app = _build_app(config, dry_run=True, replay_search=True)
+            research_app = _build_app(config, dry_run=dry_run, replay_search=True)
             result = research_app.invoke({
                 "question": saved["question"],
-                "subquestions": saved["subquestions"],
-                "search_results": saved["search_results"],
+                "subquestions": [SubQuestion(**sq) for sq in saved["subquestions"]],
+                "search_results": [SearchResult(**sr) for sr in saved["search_results"]],
                 "errors": [],
             })
         else:
@@ -149,12 +150,12 @@ def main(
         # --save-search
         if save_search:
             import json as json_module
-            with open(save_search, "w") as f:
+            with open(save_search, "w", encoding="utf-8") as f:
                 json_module.dump({
                     "question": result.get("question", question),
-                    "subquestions": result.get("subquestions", []),
-                    "search_results": result.get("search_results", []),
-                }, f, default=str, indent=2)
+                    "subquestions": [sq.model_dump() for sq in result.get("subquestions", [])],
+                    "search_results": [sr.model_dump() for sr in result.get("search_results", [])],
+                }, f, indent=2, default=str)
             console.print(f"Search results saved to {save_search}")
 
         # --output (dry-run or replay output)

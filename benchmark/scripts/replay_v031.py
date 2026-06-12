@@ -45,12 +45,17 @@ def main():
     search = TavilySearchClient(api_key=config.tavily_api_key)
 
     # v0.3.1 doesn't support --replay-search -- directly call prepare_evidence
+    # Reconstruct Pydantic models from dicts in frozen JSON
+    from deepresearch.state import SearchResult, SubQuestion
+    subquestions = [SubQuestion(**sq) for sq in frozen.get("subquestions", [])]
+    search_results = [SearchResult(**sr) for sr in frozen.get("search_results", [])]
+
     prepare_evidence = make_prepare_evidence_node(search, llm, max_sources_per_subquestion=args.max_sources)
 
     result = prepare_evidence({
         "question": frozen["question"],
-        "subquestions": frozen["subquestions"],
-        "search_results": frozen["search_results"],
+        "subquestions": subquestions,
+        "search_results": search_results,
         "errors": [],
     })
 

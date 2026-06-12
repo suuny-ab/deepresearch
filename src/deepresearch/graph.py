@@ -47,7 +47,17 @@ def build_research_graph(
 
     if replay_search:
         graph.add_edge(START, "prepare_evidence")
-        graph.add_edge("prepare_evidence", END)
+        if dry_run:
+            graph.add_edge("prepare_evidence", END)
+        else:
+            graph.add_edge("prepare_evidence", "write_report")
+            graph.add_edge("write_report", "review_report")
+            graph.add_conditional_edges(
+                "review_report",
+                _review_router,
+                {"write_report": "write_report", "save_report": "save_report"},
+            )
+            graph.add_edge("save_report", END)
     else:
         graph.add_edge(START, "plan_research")
         graph.add_edge("plan_research", "search_web")
