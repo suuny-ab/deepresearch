@@ -17,8 +17,12 @@ class FakeSearchClient:
     def extract(self, urls, *, subquestion_id):
         self.extract_calls.append({"urls": list(urls), "subquestion_id": subquestion_id})
         if self.fail_extract:
-            raise Exception("extract failed")
+            from deepresearch.errors import SearchError
+            raise SearchError("extract failed")
         return self.extracted_sources
+
+    def search(self, query, *, subquestion_id, max_results):
+        raise NotImplementedError("FakeSearchClient for evidence tests does not implement search")
 
 
 def test_two_phase_evidence_pipeline():

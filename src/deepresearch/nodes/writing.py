@@ -82,9 +82,6 @@ def _invalid_urls_for_reason(reason: CitationFailureReason, validation_invalid_u
     return []
 
 
-def _failure_to_dict(result: CitationValidationResult) -> dict[str, object]:
-    return result.to_dict()
-
 
 def _allowed_source_urls(state: ResearchState) -> set[str]:
     evidence_cards = state.get("evidence_cards", [])
@@ -180,7 +177,7 @@ def make_write_report_node(llm: LLMClient):
                 "report_status": "success",
                 "rewrite_attempted": True,
                 "validation_attempts": 2,
-                "validation_failures": [_failure_to_dict(first_validation)],
+                "validation_failures": [first_validation.to_dict()],
             }
 
         second_invalid_urls = _invalid_urls_for_reason(
@@ -201,7 +198,7 @@ def make_write_report_node(llm: LLMClient):
             "report_status": "failed_validation",
             "rewrite_attempted": True,
             "validation_attempts": 2,
-            "validation_failures": [_failure_to_dict(first_validation), _failure_to_dict(second_validation)],
+            "validation_failures": [first_validation.to_dict(), second_validation.to_dict()],
         }
 
     return write_report

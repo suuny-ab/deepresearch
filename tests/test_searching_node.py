@@ -16,6 +16,9 @@ class FakeSearchClient:
             raise SearchError("search failed")
         return [SearchResult(subquestion_id=subquestion_id, query=query, title="Source", url=f"https://example.com/{subquestion_id}", content="Content")]
 
+    def extract(self, urls, *, subquestion_id):
+        raise NotImplementedError("FakeSearchClient for searching tests does not implement extract")
+
 
 def test_search_web_collects_results():
     client = FakeSearchClient()

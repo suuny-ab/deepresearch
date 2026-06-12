@@ -15,7 +15,7 @@ class FakeSearchClient:
         self.extract_calls = []
 
     def search(self, query: str, *, subquestion_id: str, max_results: int):
-        return [SearchResult(subquestion_id=subquestion_id, title="Source", url="https://example.com/source", content="AI search uses generated answers.")]
+        return [SearchResult(subquestion_id=subquestion_id, query=query, title="Source", url="https://example.com/source", content="AI search uses generated answers.")]
 
     def extract(self, urls: list[str], *, subquestion_id: str):
         self.extract_calls.append({"urls": list(urls), "subquestion_id": subquestion_id})

@@ -2,8 +2,6 @@ from collections import Counter, defaultdict
 
 from pydantic import BaseModel
 
-from deepresearch.clients.llm import LLMClient
-from deepresearch.clients.tavily import SearchClient
 from deepresearch.prompts.evidence import build_validation_prompt
 from deepresearch.prompts.extraction import build_extraction_prompt
 from deepresearch.state import (
@@ -33,14 +31,7 @@ def _dedupe_results(results: list[SearchResult]) -> list[SearchResult]:
     return deduped
 
 
-def _is_english_domain(url: str) -> bool:
-    domain = extract_domain(url)
-    if not domain:
-        return False
-    return not any(domain.endswith(tld) for tld in [".cn", ".com.cn", ".org.cn"])
-
-
-def _select_sources(results, max_sources, has_english_query=False):
+def _select_sources(results, max_sources):
     candidates = sorted(results, key=lambda r: r.score or 0, reverse=True)
     selected = []
     selected_domains = set()
@@ -51,13 +42,6 @@ def _select_sources(results, max_sources, has_english_query=False):
         if domain and domain not in selected_domains:
             selected.append(candidate)
             selected_domains.add(domain)
-    if has_english_query and selected and not any(_is_english_domain(s.url) for s in selected):
-        for candidate in candidates:
-            if candidate not in selected and _is_english_domain(candidate.url):
-                if len(selected) >= max_sources:
-                    selected.pop()
-                selected.append(candidate)
-                break
     return selected
 
 
@@ -85,7 +69,7 @@ def _extract_sources_for_subquestion(search_client, subquestion_id, selected, er
     except Exception as exc:
         errors.append(f"Evidence extract failed for {subquestion_id}: {exc}")
         fallback = _fallback_extracted_sources(selected)
-        return fallback, fallback
+        return [], fallback
     extracted_keys = {normalize_url(s.url) for s in extracted}
     missing = [r for r in selected if normalize_url(r.url) not in extracted_keys]
     fallback = _fallback_extracted_sources(missing) if missing else []
@@ -169,7 +153,7 @@ def _build_metrics(raw, deduped, extracted_sources, evidence_cards):
 def _run_assertions(claims, sources, cards):
     results = []
     for source in sources:
-        count = len([c for c in claims if c.source_url == source.url])
+        count = len([c for c in claims if normalize_url(c.source_url) == normalize_url(source.url)])
         if count == 0:
             results.append(f"[FAIL] Source {source.url} contributed 0 claims")
     if cards:

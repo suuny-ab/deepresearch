@@ -5,7 +5,7 @@ A Python + LangGraph command-line Deep Research Agent using DeepSeek v4 pro thro
 ## Workflow
 
 ```text
-plan_research → search_web → prepare_evidence → synthesize_notes → write_report → review_report → save_report
+plan_research → search_web → prepare_evidence → write_report → review_report → save_report
 ```
 
 ## Evidence pipeline

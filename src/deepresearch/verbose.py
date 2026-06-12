@@ -32,8 +32,8 @@ def format_verbose_summary(state: dict[str, Any]) -> str:
             if getattr(item, "search_queries", []) or getattr(item, "search_query", None)
         )
         coverage_values = {
-            "subquestions": evidence_metrics.get("subquestions", derived_subquestion_count),
-            "total_queries": evidence_metrics.get("total_queries", derived_total_queries),
+            "subquestions": derived_subquestion_count,
+            "total_queries": derived_total_queries,
         }
 
         lines.extend(["", "Search coverage:"])

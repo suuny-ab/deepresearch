@@ -28,8 +28,10 @@ def _with_progress(label: str, node):
 
 
 def _build_app(config: AppConfig, dry_run: bool = False, replay_search: bool = False):
-    assert config.deepseek_api_key is not None
-    assert config.tavily_api_key is not None
+    if config.deepseek_api_key is None:
+        raise ConfigError("DEEPSEEK_API_KEY is not set")
+    if config.tavily_api_key is None:
+        raise ConfigError("TAVILY_API_KEY is not set")
     llm = DeepSeekLLMClient(
         api_key=config.deepseek_api_key,
         base_url=config.deepseek_base_url,
@@ -127,8 +129,12 @@ def main(
         # --replay-search mode
         if replay_search:
             import json as json_module
-            with open(replay_search) as f:
-                saved = json_module.load(f)
+            try:
+                with open(replay_search) as f:
+                    saved = json_module.load(f)
+            except (FileNotFoundError, json_module.JSONDecodeError, KeyError) as exc:
+                console.print(f"Error loading replay search file: {exc}")
+                raise typer.Exit(code=1)
             research_app = _build_app(config, dry_run=True, replay_search=True)
             result = research_app.invoke({
                 "question": saved["question"],
