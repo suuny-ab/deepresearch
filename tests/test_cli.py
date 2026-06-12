@@ -176,7 +176,7 @@ def test_cli_dry_run_prints_evidence_summary(monkeypatch):
         },
         "errors": [],
     })
-    monkeypatch.setattr("deepresearch.cli._build_app", lambda config, dry_run=False: fake_app)
+    monkeypatch.setattr("deepresearch.cli._build_app", lambda config, dry_run=False, replay_search=False: fake_app)
 
     result = runner.invoke(app, ["AI search", "--dry-run"])
 
@@ -185,3 +185,46 @@ def test_cli_dry_run_prints_evidence_summary(monkeypatch):
     assert "EvidenceCards: 5" in result.output
     assert "strongly_corroborated: 2" in result.output
     assert "weakly_corroborated" in result.output
+
+
+def test_cli_save_search_writes_file(monkeypatch, tmp_path):
+    _set_required_env(monkeypatch)
+    fake_app = FakeResearchApp({
+        "question": "AI search",
+        "subquestions": [],
+        "search_results": [],
+        "evidence_cards": [],
+        "evidence_metrics": {},
+        "errors": [],
+    })
+    monkeypatch.setattr("deepresearch.cli._build_app", lambda config, dry_run=False, replay_search=False: fake_app)
+    output = tmp_path / "search.json"
+
+    result = runner.invoke(app, ["AI search", "--dry-run", "--save-search", str(output)])
+
+    assert result.exit_code == 0
+    assert output.exists()
+
+
+def test_cli_compare_prints_comparison(monkeypatch, tmp_path):
+    import json as json_module
+    _set_required_env(monkeypatch)
+    baseline_file = tmp_path / "baseline.json"
+    new_file = tmp_path / "new.json"
+    baseline_file.write_text(json_module.dumps({
+        "evidence_cards": [{"id": "e1", "corroboration_level": "single_source"}],
+        "evidence_metrics": {"extracted_sources": 3, "evidence_cards": 1,
+                             "corroboration": {"single_source": 1}},
+    }))
+    new_file.write_text(json_module.dumps({
+        "evidence_cards": [{"id": "e1", "corroboration_level": "strongly_corroborated"},
+                           {"id": "e2", "corroboration_level": "weakly_corroborated"}],
+        "evidence_metrics": {"extracted_sources": 3, "evidence_cards": 2,
+                             "corroboration": {"strongly_corroborated": 1, "weakly_corroborated": 1}},
+    }))
+
+    result = runner.invoke(app, ["--compare", str(baseline_file), str(new_file)])
+
+    assert result.exit_code == 0
+    assert "A/B Comparison" in result.output
+    assert "+100%" in result.output

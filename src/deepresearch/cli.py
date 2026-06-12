@@ -28,7 +28,7 @@ def _with_progress(label: str, node):
     return wrapped
 
 
-def _build_app(config: AppConfig, dry_run: bool = False):
+def _build_app(config: AppConfig, dry_run: bool = False, replay_search: bool = False):
     assert config.deepseek_api_key is not None
     assert config.tavily_api_key is not None
     llm = DeepSeekLLMClient(
@@ -55,18 +55,58 @@ def _build_app(config: AppConfig, dry_run: bool = False):
         review_report=_with_progress("[6/7] Reviewing report...", review_report),
         save_report=_with_progress("[7/7] Saving report...", save_report),
         dry_run=dry_run,
+        replay_search=replay_search,
     )
+
+
+def _run_compare(baseline_path: str, new_path: str):
+    import json as json_module
+    with open(baseline_path) as f:
+        baseline = json_module.load(f)
+    with open(new_path) as f:
+        new = json_module.load(f)
+
+    b_cards = baseline.get("evidence_cards", [])
+    n_cards = new.get("evidence_cards", [])
+    b_metrics = baseline.get("evidence_metrics", {})
+    n_metrics = new.get("evidence_metrics", {})
+    b_extracted = b_metrics.get("extracted_sources", 1) or 1
+    n_extracted = n_metrics.get("extracted_sources", 1) or 1
+
+    console.print("\nA/B Comparison: baseline vs new\n")
+    console.print("Claim extraction:")
+    console.print(f"  baseline: {len(b_cards)} cards from {b_extracted} sources ({len(b_cards)/max(b_extracted,1):.1f} avg)")
+    console.print(f"  new:      {len(n_cards)} cards from {n_extracted} sources ({len(n_cards)/max(n_extracted,1):.1f} avg)")
+    if len(b_cards) > 0:
+        console.print(f"  delta: {((len(n_cards)-len(b_cards))/len(b_cards)*100):+.0f}%")
+
+    b_corr = b_metrics.get("corroboration", {})
+    n_corr = n_metrics.get("corroboration", {})
+    console.print("\nCorroboration distribution:")
+    console.print(f"  baseline: {b_corr}")
+    console.print(f"  new:      {n_corr}")
+
+    b_single = b_corr.get("single_source", 0)
+    n_single = n_corr.get("single_source", 0)
+    b_total = len(b_cards)
+    n_total = len(n_cards)
+    if b_total > 0 and n_total > 0:
+        console.print(f"\nSingle-source rate: {b_single/b_total:.0%} -> {n_single/n_total:.0%}")
 
 
 @app.command()
 def main(
-    question: str = typer.Argument(..., help="Research question"),
+    question: str | None = typer.Argument(None, help="Research question"),
     max_subquestions: int | None = typer.Option(None, "--max-subquestions", help="Maximum generated subquestions"),
     results_per_query: int | None = typer.Option(None, "--results-per-query", help="Tavily results per query"),
     output_dir: str | None = typer.Option(None, "--output-dir", help="Report output directory"),
     model: str | None = typer.Option(None, "--model", help="DeepSeek model override"),
     verbose: bool = typer.Option(False, "--verbose", help="Print debugging details"),
     dry_run: bool = typer.Option(False, "--dry-run", help="Stop after evidence extraction and print card summary"),
+    save_search: str | None = typer.Option(None, "--save-search", help="Save search results for replay"),
+    replay_search: str | None = typer.Option(None, "--replay-search", help="Replay from saved search results"),
+    compare: tuple[str, str] | None = typer.Option(None, "--compare", help="Compare two dry-run JSON outputs"),
+    output: str | None = typer.Option(None, "--output", help="Save dry-run output as JSON"),
 ):
     try:
         config = AppConfig.from_env().with_overrides(
@@ -77,9 +117,53 @@ def main(
             verbose=verbose,
         )
         config.validate_required()
-        research_app = _build_app(config, dry_run=dry_run)
 
-        result = research_app.invoke({"question": question, "errors": []})
+        if not compare and not replay_search and not question:
+            console.print("Error: question argument is required unless --compare or --replay-search is used")
+            raise typer.Exit(code=1)
+
+        # --compare mode
+        if compare:
+            _run_compare(compare[0], compare[1])
+            return
+
+        # --replay-search mode
+        if replay_search:
+            import json as json_module
+            with open(replay_search) as f:
+                saved = json_module.load(f)
+            research_app = _build_app(config, dry_run=True, replay_search=True)
+            result = research_app.invoke({
+                "question": saved["question"],
+                "subquestions": saved["subquestions"],
+                "search_results": saved["search_results"],
+                "errors": [],
+            })
+        else:
+            research_app = _build_app(config, dry_run=dry_run)
+            result = research_app.invoke({"question": question, "errors": []})
+
+        # --save-search
+        if save_search:
+            import json as json_module
+            with open(save_search, "w") as f:
+                json_module.dump({
+                    "question": result.get("question", question),
+                    "subquestions": result.get("subquestions", []),
+                    "search_results": result.get("search_results", []),
+                }, f, default=str, indent=2)
+            console.print(f"Search results saved to {save_search}")
+
+        # --output (dry-run output)
+        if output and (dry_run or replay_search):
+            import json as json_module
+            with open(output, "w") as f:
+                json_module.dump({
+                    "evidence_cards": [c.model_dump() for c in result.get("evidence_cards", [])],
+                    "extracted_claims": [c.model_dump() for c in result.get("extracted_claims", [])],
+                    "evidence_metrics": result.get("evidence_metrics", {}),
+                }, f, indent=2, default=str)
+            console.print(f"Dry-run output saved to {output}")
 
         if dry_run:
             console.print("\n[Dry run] Evidence extraction complete.\n")
