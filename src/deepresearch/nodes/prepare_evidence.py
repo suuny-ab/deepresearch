@@ -112,7 +112,12 @@ def _validate_corroboration(card, extracted_urls, extracted_content_types):
 def _phase1_extract(llm, question, sources, subquestions, errors):
     prompt = build_extraction_prompt(question, sources, subquestions)
     try:
-        return parse_json_object(llm.complete(prompt), ClaimsResponse).claims
+        text = llm.complete(prompt)
+    except Exception as exc:
+        errors.append(f"LLM call failed in phase1_extract: {exc}")
+        return []
+    try:
+        return parse_json_object(text, ClaimsResponse).claims
     except JSONParseError as exc:
         errors.append(f"Phase 1 extraction failed: {exc}")
         return []
@@ -123,7 +128,21 @@ def _phase2_validate(llm, sq_id, sq_question, claims, sources, errors):
         return []
     prompt = build_validation_prompt(sq_id, sq_question, claims, sources)
     try:
-        return list(parse_json_object(llm.complete(prompt), EvidenceResponse).evidence_cards)
+        text = llm.complete(prompt)
+    except Exception as exc:
+        errors.append(f"LLM call failed in phase2_validate for {sq_id}: {exc}")
+        return [
+            EvidenceCard(
+                id=c.id, subquestion_id=c.subquestion_id,
+                claim=c.claim, source_url=c.source_url,
+                source_title=c.source_title, supporting_snippet=c.supporting_snippet,
+                content_type=c.content_type,
+                corroboration_level="single_source", corroborating_sources=[],
+                confidence="low",
+            ) for c in claims
+        ]
+    try:
+        return list(parse_json_object(text, EvidenceResponse).evidence_cards)
     except JSONParseError as exc:
         errors.append(f"Phase 2 validation failed for {sq_id}: {exc}")
         return [

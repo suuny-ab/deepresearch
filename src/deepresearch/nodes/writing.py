@@ -142,9 +142,21 @@ def make_write_report_node(llm: LLMClient):
             evidence_cards=state.get("evidence_cards", []),
             allowed_source_urls=allowed_urls,
         )
-        report = llm.complete(prompt)
-        first_validation = validate_citations(report, allowed_urls)
         errors = list(state.get("errors", []))
+        try:
+            report = llm.complete(prompt)
+        except Exception as exc:
+            errors.append(f"LLM call failed in write_report: {exc}")
+            return {
+                **state,
+                "report_markdown": "Report generation failed due to an LLM error.",
+                "report_status": "failed_validation",
+                "rewrite_attempted": False,
+                "validation_attempts": 0,
+                "validation_failures": [],
+                "errors": errors,
+            }
+        first_validation = validate_citations(report, allowed_urls)
         if first_validation.passed:
             return {
                 **state,
@@ -166,7 +178,20 @@ def make_write_report_node(llm: LLMClient):
             f"{first_validation.message}{first_invalid_url_detail}"
         )
         rewrite_prompt = _build_rewrite_prompt(state["question"], report, first_validation, allowed_urls)
-        rewritten_report = llm.complete(rewrite_prompt)
+        try:
+            rewritten_report = llm.complete(rewrite_prompt)
+        except Exception as exc:
+            errors.append(f"LLM call failed in write_report rewrite: {exc}")
+            failure_report = _validation_failure_report(state["question"], [first_validation])
+            return {
+                **state,
+                "report_markdown": failure_report,
+                "errors": errors,
+                "report_status": "failed_validation",
+                "rewrite_attempted": True,
+                "validation_attempts": 1,
+                "validation_failures": [first_validation.to_dict()],
+            }
         second_validation = validate_citations(rewritten_report, allowed_urls)
 
         if second_validation.passed:
