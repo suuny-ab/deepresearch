@@ -28,7 +28,7 @@ def _with_progress(label: str, node):
     return wrapped
 
 
-def _build_app(config: AppConfig):
+def _build_app(config: AppConfig, dry_run: bool = False):
     assert config.deepseek_api_key is not None
     assert config.tavily_api_key is not None
     llm = DeepSeekLLMClient(
@@ -54,6 +54,7 @@ def _build_app(config: AppConfig):
         write_report=_with_progress("[5/7] Writing report...", write_report),
         review_report=_with_progress("[6/7] Reviewing report...", review_report),
         save_report=_with_progress("[7/7] Saving report...", save_report),
+        dry_run=dry_run,
     )
 
 
@@ -65,6 +66,7 @@ def main(
     output_dir: str | None = typer.Option(None, "--output-dir", help="Report output directory"),
     model: str | None = typer.Option(None, "--model", help="DeepSeek model override"),
     verbose: bool = typer.Option(False, "--verbose", help="Print debugging details"),
+    dry_run: bool = typer.Option(False, "--dry-run", help="Stop after evidence extraction and print card summary"),
 ):
     try:
         config = AppConfig.from_env().with_overrides(
@@ -75,9 +77,34 @@ def main(
             verbose=verbose,
         )
         config.validate_required()
-        research_app = _build_app(config)
+        research_app = _build_app(config, dry_run=dry_run)
 
         result = research_app.invoke({"question": question, "errors": []})
+
+        if dry_run:
+            console.print("\n[Dry run] Evidence extraction complete.\n")
+            evidence_metrics = result.get("evidence_metrics", {})
+            cards = result.get("evidence_cards", [])
+            console.print(f"EvidenceCards: {evidence_metrics.get('evidence_cards', 0)}")
+            console.print()
+            console.print("Evidence corroboration:")
+            corroboration = evidence_metrics.get("corroboration", {})
+            for key in ["strongly_corroborated", "weakly_corroborated", "single_source"]:
+                value = corroboration.get(key, 0)
+                desc = {
+                    "strongly_corroborated": " (3+ independent sources agree)",
+                    "weakly_corroborated": " (2 independent sources agree)",
+                    "single_source": " (only one source mentions this)",
+                }.get(key, "")
+                console.print(f"- {key}: {value}{desc}")
+            if cards:
+                console.print()
+                console.print("Evidence card summaries:")
+                for i, card in enumerate(cards, start=1):
+                    claim_snippet = card.claim[:100] + "..." if len(card.claim) > 100 else card.claim
+                    console.print(f"{i}. [{card.id}] {claim_snippet} (corroboration: {card.corroboration_level}, sources: {len(card.corroborating_sources)})")
+            return
+
         if result.get("report_status") == "failed_validation":
             console.print("\nReport validation failed.")
             console.print(f"Saved failure report to: {result['output_path']}")

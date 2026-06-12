@@ -59,7 +59,7 @@ def test_cli_rejects_zero_results_per_query_option_before_building_clients(monke
     monkeypatch.setenv("DEEPSEEK_API_KEY", "dummy-deepseek-key")
     monkeypatch.setenv("TAVILY_API_KEY", "dummy-tavily-key")
 
-    def fail_if_building_clients(_config):
+    def fail_if_building_clients(_config, **kwargs):
         raise AssertionError("API clients should not be built when config validation fails")
 
     monkeypatch.setattr("deepresearch.cli._build_app", fail_if_building_clients)
@@ -95,7 +95,7 @@ def test_cli_prints_success_message_for_successful_report(monkeypatch):
         "review": ReviewResult(passed=True, score=90, issues=[], suggestions=[]),
         "errors": [],
     })
-    monkeypatch.setattr("deepresearch.cli._build_app", lambda _config: fake_app)
+    monkeypatch.setattr("deepresearch.cli._build_app", lambda _config, **kwargs: fake_app)
 
     result = runner.invoke(app, ["AI search"])
 
@@ -114,7 +114,7 @@ def test_cli_prints_failure_message_for_failed_validation(monkeypatch):
         "review": ReviewResult(passed=False, score=0, issues=[], suggestions=[]),
         "errors": ["Report contains invalid source URL(s) outside search_results: https://invalid.example"],
     })
-    monkeypatch.setattr("deepresearch.cli._build_app", lambda _config: fake_app)
+    monkeypatch.setattr("deepresearch.cli._build_app", lambda _config, **kwargs: fake_app)
 
     result = runner.invoke(app, ["AI search"])
 
@@ -155,7 +155,7 @@ def test_cli_verbose_prints_workflow_summary(monkeypatch):
         "review": ReviewResult(passed=True, score=90, issues=[], suggestions=[]),
         "errors": [],
     })
-    monkeypatch.setattr("deepresearch.cli._build_app", lambda _config: fake_app)
+    monkeypatch.setattr("deepresearch.cli._build_app", lambda _config, **kwargs: fake_app)
 
     result = runner.invoke(app, ["AI search", "--verbose"])
 
@@ -163,3 +163,25 @@ def test_cli_verbose_prints_workflow_summary(monkeypatch):
     assert "Workflow details:" in result.output
     assert "Subquestions:" in result.output
     assert "Review:" in result.output
+
+
+def test_cli_dry_run_prints_evidence_summary(monkeypatch):
+    _set_required_env(monkeypatch)
+    fake_app = FakeResearchApp({
+        "question": "AI search",
+        "evidence_cards": [],
+        "evidence_metrics": {
+            "evidence_cards": 5,
+            "corroboration": {"strongly_corroborated": 2, "weakly_corroborated": 2, "single_source": 1},
+        },
+        "errors": [],
+    })
+    monkeypatch.setattr("deepresearch.cli._build_app", lambda config, dry_run=False: fake_app)
+
+    result = runner.invoke(app, ["AI search", "--dry-run"])
+
+    assert result.exit_code == 0
+    assert "[Dry run] Evidence extraction complete." in result.output
+    assert "EvidenceCards: 5" in result.output
+    assert "strongly_corroborated: 2" in result.output
+    assert "weakly_corroborated" in result.output
