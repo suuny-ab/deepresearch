@@ -88,5 +88,7 @@ class ResearchState(TypedDict, total=False):
     validation_attempts: int
     validation_failures: list[dict[str, Any]]
     review: ReviewResult
+    review_feedback: str | None
+    review_rewritten: bool
     output_path: str
     errors: list[str]
