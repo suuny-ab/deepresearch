@@ -1,0 +1,156 @@
+{
+  "meta": {
+    "app_version": "v0.3.1",
+    "schema_version": 1,
+    "timestamp": "2026-06-13T06:37:01.061347+00:00",
+    "mode": "replay",
+    "config": {}
+  },
+  "inputs": {
+    "question": "\u56fa\u6001\u7535\u6c60 2026 \u5e74\u5546\u4e1a\u5316\u8fdb\u5c55",
+    "subquestions": []
+  },
+  "pipeline": {
+    "search_results": [],
+    "extracted_claims": [],
+    "evidence_cards": [
+      {
+        "id": "e1",
+        "subquestion_id": "q1",
+        "claim": "\u56fa\u6001\u7535\u6c60\u6280\u672f\u6b63\u57282026\u5e74\u8fdb\u5165\u5b9e\u9645\u751f\u4ea7\u9636\u6bb5",
+        "source_url": "https://to7motor.com/solid-state-batteries-2026-commercial-reality",
+        "source_title": "Solid-State Batteries 2026: How the Technology Is Finally Reaching Commercial Use",
+        "supporting_snippet": "solid-state battery technology is entering real-world production in 2026",
+        "content_type": "extracted_content",
+        "corroboration_level": "weakly_corroborated",
+        "corroborating_sources": [
+          "https://www.tmtpost.com/7920519.html"
+        ],
+        "confidence": "medium"
+      },
+      {
+        "id": "e2",
+        "subquestion_id": "q2",
+        "claim": "\u9ad8\u5236\u9020\u6210\u672c\u548c\u89c4\u6a21\u5316\u751f\u4ea7\u590d\u6742\u6027\u662f\u56fa\u6001\u7535\u6c60\u5546\u4e1a\u5316\u7684\u4e3b\u8981\u969c\u788d",
+        "source_url": "https://www.persistencemarketresearch.com/market-research/solid-state-battery-market.asp",
+        "source_title": "Solid-state Battery Market Size & Share Report, 2026-2033",
+        "supporting_snippet": "Despite strong interest, high production costs and manufacturing complexity remain major restraints. Solid-state cells require new materials (such as sulfide or oxide electrolytes) and specialized processing steps, often at elevated temperatures or in dry environments, which differ from today's gigafactory lines built around liquid-electrolyte lithium-ion. This raises capital expenditure and slows down scale-up...",
+        "content_type": "extracted_content",
+        "corroboration_level": "strongly_corroborated",
+        "corroborating_sources": [
+          "https://to7motor.com/solid-state-batteries-2026-commercial-reality",
+          "https://www.tmtpost.com/7920519.html"
+        ],
+        "confidence": "high"
+      },
+      {
+        "id": "e3",
+        "subquestion_id": "q2",
+        "claim": "\u4e9a\u592a\u5730\u533a\uff08\u4e2d\u56fd\u3001\u65e5\u672c\u3001\u97e9\u56fd\uff09\u662f\u56fa\u6001\u7535\u6c60\u7814\u53d1\u548c\u5236\u9020\u7684\u4e2d\u5fc3",
+        "source_url": "https://www.persistencemarketresearch.com/market-research/solid-state-battery-market.asp",
+        "source_title": "Solid-state Battery Market Size & Share Report, 2026-2033",
+        "supporting_snippet": "Asia Pacific is emerging as the largest manufacturing and deployment hub for advanced batteries, including solid-state technologies, led by China, Japan, and South Korea",
+        "content_type": "extracted_content",
+        "corroboration_level": "strongly_corroborated",
+        "corroborating_sources": [
+          "https://to7motor.com/solid-state-batteries-2026-commercial-reality",
+          "https://www.tmtpost.com/7920519.html"
+        ],
+        "confidence": "high"
+      },
+      {
+        "id": "e4",
+        "subquestion_id": "q1",
+        "claim": "\u7535\u52a8\u6c7d\u8f66\u9700\u6c42\u7684\u589e\u957f\u662f\u9a71\u52a8\u56fa\u6001\u7535\u6c60\u5e02\u573a\u6269\u5f20\u7684\u5173\u952e\u56e0\u7d20",
+        "source_url": "https://www.researchandmarkets.com/reports/5939403/solid-state-battery-market-report",
+        "source_title": "Solid State Battery Market Report 2026 - Research and Markets",
+        "supporting_snippet": "The upward trajectory of electric vehicle (EV) adoption is poised to be a catalyst for the expansion of the solid-state battery market.",
+        "content_type": "extracted_content",
+        "corroboration_level": "strongly_corroborated",
+        "corroborating_sources": [
+          "https://www.persistencemarketresearch.com/market-research/solid-state-battery-market.asp",
+          "https://finance.yahoo.com/news/solid-state-battery-materials-market-092300106.html"
+        ],
+        "confidence": "high"
+      },
+      {
+        "id": "e5",
+        "subquestion_id": "q1",
+        "claim": "\u56fa\u6001\u7535\u6c60\u7684\u80fd\u91cf\u5bc6\u5ea6\u76ee\u6807\u662f400-500 Wh/kg\uff0c\u8fdc\u9ad8\u4e8e\u5f53\u524d\u9502\u79bb\u5b50\u7535\u6c60\u7684200-300 Wh/kg",
+        "source_url": "https://to7motor.com/solid-state-batteries-2026-commercial-reality",
+        "source_title": "Solid-State Batteries 2026: How the Technology Is Finally Reaching Commercial Use",
+        "supporting_snippet": "Today's best lithium-ion batteries deliver 200\u2013300 Wh/kg. Solid-state batteries 2026 are targeting 400\u2013500 Wh/kg commercially, with potential to reach 500\u2013600 Wh/kg in the coming years.",
+        "content_type": "extracted_content",
+        "corroboration_level": "strongly_corroborated",
+        "corroborating_sources": [
+          "https://www.tmtpost.com/7920519.html",
+          "https://www.persistencemarketresearch.com/market-research/solid-state-battery-market.asp"
+        ],
+        "confidence": "high"
+      },
+      {
+        "id": "e6",
+        "subquestion_id": "q2",
+        "claim": "\u56fa\u6001\u7535\u6c60\u5177\u6709\u66f4\u597d\u7684\u5b89\u5168\u6027\uff0c\u4e0d\u6613\u71c3\uff0c\u70ed\u7a33\u5b9a\u6027\u66f4\u9ad8",
+        "source_url": "https://www.persistencemarketresearch.com/market-research/solid-state-battery-market.asp",
+        "source_title": "Solid-state Battery Market Size & Share Report, 2026-2033",
+        "supporting_snippet": "Solid-state architectures replace flammable liquid electrolytes with solid ones, significantly lowering fire risk",
+        "content_type": "extracted_content",
+        "corroboration_level": "strongly_corroborated",
+        "corroborating_sources": [
+          "https://to7motor.com/solid-state-batteries-2026-commercial-reality",
+          "https://www.tmtpost.com/7920519.html"
+        ],
+        "confidence": "high"
+      },
+      {
+        "id": "e7",
+        "subquestion_id": "q1",
+        "claim": "\u4e2d\u56fd\u5c06\u57282026\u5e747\u6708\u53d1\u5e03\u9996\u4e2a\u56fa\u6001\u7535\u6c60\u6807\u51c6",
+        "source_url": "https://to7motor.com/solid-state-batteries-2026-commercial-reality",
+        "source_title": "Solid-State Batteries 2026: How the Technology Is Finally Reaching Commercial Use",
+        "supporting_snippet": "China set to release its first solid-state battery standard in July 2026",
+        "content_type": "extracted_content",
+        "corroboration_level": "single_source",
+        "corroborating_sources": [],
+        "confidence": "medium"
+      }
+    ],
+    "evidence_metrics": {
+      "raw_search_results": 12,
+      "deduped_sources": 12,
+      "duplicates_removed": 0,
+      "extracted_sources": 6,
+      "evidence_cards": 7,
+      "corroboration": {
+        "weakly_corroborated": 1,
+        "strongly_corroborated": 5,
+        "single_source": 1
+      }
+    }
+  },
+  "standard_metrics": {
+    "evidence_card_count": 7,
+    "claims_per_source": 0.0,
+    "source_utilization": 0.0,
+    "corroboration_strong": 5,
+    "corroboration_weak": 1,
+    "corroboration_single": 1,
+    "domain_diversity": 0,
+    "review_score": null,
+    "review_passed": null,
+    "rewrite_triggered": false,
+    "citation_coverage": null,
+    "source_citation_rate": null,
+    "orphan_url_count": null,
+    "validation_first_pass": null
+  },
+  "output": {
+    "report_markdown": "",
+    "report_status": null,
+    "review": null,
+    "validation_failures": [],
+    "errors": [],
+    "output_path": null
+  }
+}

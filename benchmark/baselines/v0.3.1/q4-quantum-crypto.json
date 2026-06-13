@@ -1,0 +1,202 @@
+{
+  "meta": {
+    "app_version": "v0.3.1",
+    "schema_version": 1,
+    "timestamp": "2026-06-13T06:37:01.940541+00:00",
+    "mode": "replay",
+    "config": {}
+  },
+  "inputs": {
+    "question": "\u91cf\u5b50\u8ba1\u7b97\u5bf9\u73b0\u6709\u5bc6\u7801\u4f53\u7cfb\u7684\u5a01\u80c1\u6709\u591a\u7d27\u8feb\uff0c\u540e\u91cf\u5b50\u5bc6\u7801\u7b97\u6cd5\u7684\u8fc1\u79fb\u8fdb\u5c55\u5982\u4f55",
+    "subquestions": []
+  },
+  "pipeline": {
+    "search_results": [],
+    "extracted_claims": [],
+    "evidence_cards": [
+      {
+        "id": "e1",
+        "subquestion_id": "q1",
+        "claim": "The 'harvest now, decrypt later' threat makes PQC migration urgent because encrypted data collected today can be decrypted once quantum computers mature.",
+        "source_url": "https://nvlpubs.nist.gov/nistpubs/ir/2024/NIST.IR.8547.ipd.pdf",
+        "source_title": "Transition to Post-Quantum Cryptography Standards (NIST IR 8547 ipd)",
+        "supporting_snippet": "Encrypted data remains at risk because of the 'harvest now, decrypt later' threat in which adversaries collect encrypted data now with the goal of decrypting it once quantum technology matures. Since sensitive data often retains its value for many years, starting the transition to post-quantum cryptography now is critical to preventing these future breaches.",
+        "content_type": "extracted_content",
+        "corroboration_level": "strongly_corroborated",
+        "corroborating_sources": [
+          "https://www.digicert.com/blog/nist-standards-for-quantum-safe-cryptography",
+          "https://qramm.org/learn/quantum-threat-timeline.html",
+          "https://bidenwhitehouse.archives.gov/wp-content/uploads/2024/07/REF_PQC-Report_FINAL_Send.pdf"
+        ],
+        "confidence": "high"
+      },
+      {
+        "id": "e2",
+        "subquestion_id": "q2",
+        "claim": "NIST released the first three finalized post-quantum encryption standards (FIPS 203, 204, 205) in August 2024, based on CRYSTALS-Kyber, CRYSTALS-Dilithium, and SPHINCS+.",
+        "source_url": "https://www.digicert.com/blog/nist-standards-for-quantum-safe-cryptography",
+        "source_title": "The NIST standards for quantum-safe cryptography | DigiCert",
+        "supporting_snippet": "And in August 2024, NIST announced three new long-awaited encryption standards: FIPS 203, 204, and 205.",
+        "content_type": "extracted_content",
+        "corroboration_level": "strongly_corroborated",
+        "corroborating_sources": [
+          "https://www.secrss.com/articles/79694",
+          "https://www.cnblogs.com/informatics/p/19235979",
+          "https://www.nist.gov/news-events/news/2024/08/nist-releases-first-3-finalized-post-quantum-encryption-standards"
+        ],
+        "confidence": "high"
+      },
+      {
+        "id": "e3",
+        "subquestion_id": "q1",
+        "claim": "Cryptographically relevant quantum computers (CRQCs) are expected within 5-15 years, with most expert predictions falling between 2030 and 2040.",
+        "source_url": "https://qramm.org/learn/quantum-threat-timeline.html",
+        "source_title": "Quantum Computing Threat Timeline: When Will Quantum Computers Break Encryption? | QRAMM",
+        "supporting_snippet": "Most experts estimate that cryptographically relevant quantum computers (CRQCs) capable of breaking RSA-2048 and ECC will emerge between 2030 and 2040. Some optimistic predictions suggest as early as 2027-2030, while conservative estimates extend to 2035-2040 or beyond.",
+        "content_type": "extracted_content",
+        "corroboration_level": "strongly_corroborated",
+        "corroborating_sources": [
+          "https://www.digicert.com/blog/nist-standards-for-quantum-safe-cryptography",
+          "https://bidenwhitehouse.archives.gov/wp-content/uploads/2024/07/REF_PQC-Report_FINAL_Send.pdf"
+        ],
+        "confidence": "medium"
+      },
+      {
+        "id": "e4",
+        "subquestion_id": "q1",
+        "claim": "National Security Memorandum 10 (NSM-10) sets 2035 as the target for completing PQC migration across U.S. Federal systems.",
+        "source_url": "https://nvlpubs.nist.gov/nistpubs/ir/2024/NIST.IR.8547.ipd.pdf",
+        "source_title": "Transition to Post-Quantum Cryptography Standards (NIST IR 8547 ipd)",
+        "supporting_snippet": "National Security Memorandum 10 (NSM-10) establishes the year 2035 as the primary target for completing the migration to PQC across Federal systems.",
+        "content_type": "extracted_content",
+        "corroboration_level": "weakly_corroborated",
+        "corroborating_sources": [
+          "https://bidenwhitehouse.archives.gov/wp-content/uploads/2024/07/REF_PQC-Report_FINAL_Send.pdf"
+        ],
+        "confidence": "high"
+      },
+      {
+        "id": "e5",
+        "subquestion_id": "q2",
+        "claim": "NIST launched the global PQC algorithm standardization process in 2016, receiving 82 submissions and narrowing to 69 in the first round.",
+        "source_url": "https://www.cnblogs.com/informatics/p/19235979",
+        "source_title": "\u540e\u91cf\u5b50\u5bc6\u7801\u5b66\u6807\u51c6\u5316\u8fdb\u7a0b\uff1aNIST\u6700\u65b0\u6807\u51c6\u89e3\u8bfb\u4e0e\u8fc1\u79fb\u7b56\u7565 - \u535a\u5ba2\u56ed",
+        "supporting_snippet": "NIST\u4e8e2016\u5e7412\u6708\u6b63\u5f0f\u542f\u52a8\u5168\u7403\u540e\u91cf\u5b50\u5bc6\u7801\u7b97\u6cd5\u5f81\u96c6\u5de5\u4f5c\uff0c\u6807\u5fd7\u7740\u540e\u91cf\u5b50\u5bc6\u7801\u6807\u51c6\u5316\u8fdb\u7a0b\u7684\u5f00\u59cb\u3002",
+        "content_type": "extracted_content",
+        "corroboration_level": "strongly_corroborated",
+        "corroborating_sources": [
+          "https://www.secrss.com/articles/79694",
+          "https://www.nist.gov/news-events/news/2024/08/nist-releases-first-3-finalized-post-quantum-encryption-standards"
+        ],
+        "confidence": "high"
+      },
+      {
+        "id": "e6",
+        "subquestion_id": "q3",
+        "claim": "The global PQC market is projected to grow from USD 1.35 billion in 2025 to USD 22.68 billion by 2033, at a CAGR of 42.33%.",
+        "source_url": "https://www.snsinsider.com/reports/post-quantum-cryptography-market-9079",
+        "source_title": "Post-quantum Cryptography Market Size, Share & Growth Report 2033",
+        "supporting_snippet": "Post-quantum Cryptography (PQC) Market is valued at USD 1.35 billion in 2025E and is expected to reach USD 22.68 billion by 2033, growing at a CAGR of 42.33% from 2026-2033.",
+        "content_type": "extracted_content",
+        "corroboration_level": "strongly_corroborated",
+        "corroborating_sources": [
+          "https://pdf.dfcfw.com/pdf/H3_AP202509161744654771_1.pdf",
+          "https://reportify-1252068037.cos.ap-beijing.myqcloud.com/media/production/s_1dfe3968_1dfe3968037aa1a99040991c2cc26f32.pdf"
+        ],
+        "confidence": "medium"
+      },
+      {
+        "id": "e7",
+        "subquestion_id": "q4",
+        "claim": "PQC algorithms pose performance challenges due to larger key sizes, higher computational overhead, and increased bandwidth consumption, especially in resource-constrained environments.",
+        "source_url": "https://postquantum.com/post-quantum/post-quantum-pqc-challenges",
+        "source_title": "Post-Quantum Cryptography PQC Challenges",
+        "supporting_snippet": "PQC algorithms generally demand more computational resources, leading to potential performance bottlenecks, particularly in environments with limited processing power and memory.",
+        "content_type": "extracted_content",
+        "corroboration_level": "weakly_corroborated",
+        "corroborating_sources": [
+          "https://www.cnblogs.com/informatics/p/19235979",
+          "https://zhuanlan.zhihu.com/p/1902806062404446155"
+        ],
+        "confidence": "high"
+      },
+      {
+        "id": "e8",
+        "subquestion_id": "q4",
+        "claim": "Hybrid cryptographic schemes combining classical and PQC algorithms are widely recommended as a temporary transition strategy to balance security and compatibility.",
+        "source_url": "https://nvlpubs.nist.gov/nistpubs/ir/2024/NIST.IR.8547.ipd.pdf",
+        "source_title": "Transition to Post-Quantum Cryptography Standards (NIST IR 8547 ipd)",
+        "supporting_snippet": "The migration to post-quantum cryptography may initially include hybrid solutions that incorporate the use of quantum-resistant and quantum-vulnerable algorithms when establishing cryptographic keys or generating digital signatures.",
+        "content_type": "extracted_content",
+        "corroboration_level": "strongly_corroborated",
+        "corroborating_sources": [
+          "https://www.cnblogs.com/informatics/p/19235979",
+          "https://reportify-1252068037.cos.ap-beijing.myqcloud.com/media/production/s_1dfe3968_1dfe3968037aa1a99040991c2cc26f32.pdf"
+        ],
+        "confidence": "high"
+      },
+      {
+        "id": "e9",
+        "subquestion_id": "q3",
+        "claim": "The U.S. Federal Government estimates $7.1 billion (2024 dollars) for migrating prioritized information systems to PQC between 2025 and 2035.",
+        "source_url": "https://bidenwhitehouse.archives.gov/wp-content/uploads/2024/07/REF_PQC-Report_FINAL_Send.pdf",
+        "source_title": "REPORT ON POST-QUANTUM CRYPTOGRAPHY as required by the Quantum Computing Cybersecurity Preparedness Act",
+        "supporting_snippet": "ONCD projects that the total government-wide cost required to perform a migration of prioritized information systems to PQC between 2025 and 2035 will be approximately $7.1 billion in 2024 dollars.",
+        "content_type": "extracted_content",
+        "corroboration_level": "single_source",
+        "corroborating_sources": [],
+        "confidence": "high"
+      },
+      {
+        "id": "e10",
+        "subquestion_id": "q3",
+        "claim": "Federal agencies are required to conduct annual cryptographic inventories to identify quantum-vulnerable cryptography and prioritize migration of high-impact systems and high-value assets.",
+        "source_url": "https://bidenwhitehouse.archives.gov/wp-content/uploads/2024/07/REF_PQC-Report_FINAL_Send.pdf",
+        "source_title": "REPORT ON POST-QUANTUM CRYPTOGRAPHY as required by the Quantum Computing Cybersecurity Preparedness Act",
+        "supporting_snippet": "A comprehensive and ongoing cryptographic inventory is a key baseline for successful migration to PQC. ... under M-23-02, each agency is required to perform an annual manual inventory.",
+        "content_type": "extracted_content",
+        "corroboration_level": "weakly_corroborated",
+        "corroborating_sources": [
+          "https://qramm.org/learn/quantum-threat-timeline.html"
+        ],
+        "confidence": "high"
+      }
+    ],
+    "evidence_metrics": {
+      "raw_search_results": 48,
+      "deduped_sources": 48,
+      "duplicates_removed": 0,
+      "extracted_sources": 12,
+      "evidence_cards": 10,
+      "corroboration": {
+        "strongly_corroborated": 6,
+        "weakly_corroborated": 3,
+        "single_source": 1
+      }
+    }
+  },
+  "standard_metrics": {
+    "evidence_card_count": 10,
+    "claims_per_source": 0.0,
+    "source_utilization": 0.0,
+    "corroboration_strong": 6,
+    "corroboration_weak": 3,
+    "corroboration_single": 1,
+    "domain_diversity": 0,
+    "review_score": null,
+    "review_passed": null,
+    "rewrite_triggered": false,
+    "citation_coverage": null,
+    "source_citation_rate": null,
+    "orphan_url_count": null,
+    "validation_first_pass": null
+  },
+  "output": {
+    "report_markdown": "",
+    "report_status": null,
+    "review": null,
+    "validation_failures": [],
+    "errors": [],
+    "output_path": null
+  }
+}
