@@ -4,6 +4,7 @@ from typer.testing import CliRunner
 import deepresearch.config
 from deepresearch.cli import app
 from deepresearch.state import ReviewResult
+import json as json_module
 
 
 runner = CliRunner()
@@ -207,7 +208,6 @@ def test_cli_save_search_writes_file(monkeypatch, tmp_path):
 
 
 def test_cli_compare_prints_comparison(monkeypatch, tmp_path):
-    import json as json_module
     _set_required_env(monkeypatch)
     baseline_file = tmp_path / "baseline.json"
     new_file = tmp_path / "new.json"
@@ -228,3 +228,188 @@ def test_cli_compare_prints_comparison(monkeypatch, tmp_path):
     assert result.exit_code == 0
     assert "A/B Comparison" in result.output
     assert "+100%" in result.output
+
+
+def test_cli_output_live_mode_saves_artifact(monkeypatch, tmp_path):
+    """--output 在 live 模式下保存 RunArtifact JSON。"""
+    _set_required_env(monkeypatch)
+    output_file = tmp_path / "result.json"
+    fake_app = FakeResearchApp({
+        "question": "AI search",
+        "subquestions": [],
+        "search_results": [],
+        "extracted_claims": [],
+        "evidence_cards": [],
+        "evidence_metrics": {},
+        "report_markdown": "# Report\n\nBody",
+        "output_path": "reports/success.md",
+        "report_status": "success",
+        "review": ReviewResult(passed=True, score=90, issues=[], suggestions=[]),
+        "review_rewritten": False,
+        "validation_failures": [],
+        "errors": [],
+    })
+    monkeypatch.setattr("deepresearch.cli._build_app", lambda _config, **kwargs: fake_app)
+
+    result = runner.invoke(app, ["AI search", "--output", str(output_file)])
+
+    assert result.exit_code == 0
+    assert output_file.exists()
+
+    with open(output_file) as f:
+        artifact = json_module.load(f)
+
+    # 验证顶层结构
+    assert "meta" in artifact
+    assert "inputs" in artifact
+    assert "pipeline" in artifact
+    assert "standard_metrics" in artifact
+    assert "output" in artifact
+
+    # 验证 meta
+    meta = artifact["meta"]
+    assert meta["app_version"] == "0.5.2"
+    assert meta["schema_version"] == 1
+    assert meta["mode"] == "live"
+    assert "timestamp" in meta
+    assert "config" in meta
+
+    # 验证 inputs
+    assert artifact["inputs"]["question"] == "AI search"
+
+    # 验证 output 包含 report_markdown
+    assert artifact["output"]["report_markdown"] == "# Report\n\nBody"
+    assert artifact["output"]["report_status"] == "success"
+
+
+def test_cli_output_dry_run_mode_saves_artifact(monkeypatch, tmp_path):
+    """--output 在 dry-run 模式下保存 RunArtifact JSON。"""
+    _set_required_env(monkeypatch)
+    output_file = tmp_path / "dryrun.json"
+    fake_app = FakeResearchApp({
+        "question": "AI search",
+        "evidence_cards": [],
+        "evidence_metrics": {
+            "evidence_cards": 5,
+            "corroboration": {"strongly_corroborated": 2, "weakly_corroborated": 2, "single_source": 1},
+        },
+        "errors": [],
+    })
+    monkeypatch.setattr(
+        "deepresearch.cli._build_app",
+        lambda config, dry_run=False, replay_search=False: fake_app,
+    )
+
+    result = runner.invoke(app, ["AI search", "--dry-run", "--output", str(output_file)])
+
+    assert result.exit_code == 0
+    assert output_file.exists()
+
+    with open(output_file) as f:
+        artifact = json_module.load(f)
+
+    assert artifact["meta"]["mode"] == "dry-run"
+    # dry-run 模式没有 report
+    assert artifact["output"]["report_markdown"] == ""
+
+
+def test_cli_output_replay_mode_saves_artifact(monkeypatch, tmp_path):
+    """--output 在 replay 模式下保存 RunArtifact JSON。"""
+    _set_required_env(monkeypatch)
+    output_file = tmp_path / "replay.json"
+
+    # 创建临时的 frozen search JSON
+    frozen_file = tmp_path / "frozen.json"
+    frozen_file.write_text(json_module.dumps({
+        "question": "AI search",
+        "subquestions": [],
+        "search_results": [],
+    }))
+
+    fake_app = FakeResearchApp({
+        "question": "AI search",
+        "subquestions": [],
+        "search_results": [],
+        "extracted_claims": [],
+        "evidence_cards": [],
+        "evidence_metrics": {},
+        "report_markdown": "# Replay Report",
+        "output_path": "reports/success.md",
+        "report_status": "success",
+        "review": ReviewResult(passed=True, score=88, issues=[], suggestions=[]),
+        "review_rewritten": False,
+        "validation_failures": [],
+        "errors": [],
+    })
+    monkeypatch.setattr(
+        "deepresearch.cli._build_app",
+        lambda config, dry_run=False, replay_search=False: fake_app,
+    )
+
+    result = runner.invoke(app, [
+        "--replay-search", str(frozen_file),
+        "--output", str(output_file),
+    ])
+
+    assert result.exit_code == 0
+    assert output_file.exists()
+
+    with open(output_file) as f:
+        artifact = json_module.load(f)
+
+    assert artifact["meta"]["mode"] == "replay"
+
+
+def test_cli_output_terminal_unchanged(monkeypatch):
+    """--output 不改变终端输出行为：live 模式依然打印报告路径。"""
+    _set_required_env(monkeypatch)
+    fake_app = FakeResearchApp({
+        "question": "AI search",
+        "report_markdown": "# Report\n\nBody",
+        "output_path": "reports/success.md",
+        "report_status": "success",
+        "review": ReviewResult(passed=True, score=90, issues=[], suggestions=[]),
+        "errors": [],
+    })
+    monkeypatch.setattr("deepresearch.cli._build_app", lambda _config, **kwargs: fake_app)
+
+    result = runner.invoke(app, ["AI search", "--output", "result.json"])
+
+    assert result.exit_code == 0
+    # 终端输出不受影响
+    assert "Saved report to: reports/success.md" in result.output
+
+
+def test_cli_output_includes_standard_metrics(monkeypatch, tmp_path):
+    """--output 的 artifact 包含 metrics.py 计算的质量指标。"""
+    _set_required_env(monkeypatch)
+    output_file = tmp_path / "metrics_test.json"
+    fake_app = FakeResearchApp({
+        "question": "test",
+        "subquestions": [],
+        "search_results": [],
+        "extracted_claims": [],
+        "evidence_cards": [],
+        "evidence_metrics": {},
+        "report_markdown": "",
+        "output_path": "reports/success.md",
+        "report_status": "success",
+        "review": ReviewResult(passed=True, score=85, issues=[], suggestions=[]),
+        "review_rewritten": False,
+        "validation_failures": [],
+        "errors": [],
+    })
+    monkeypatch.setattr("deepresearch.cli._build_app", lambda _config, **kwargs: fake_app)
+
+    result = runner.invoke(app, ["test", "--output", str(output_file)])
+
+    assert result.exit_code == 0
+
+    with open(output_file) as f:
+        artifact = json_module.load(f)
+
+    sm = artifact["standard_metrics"]
+    assert sm["evidence_card_count"] == 0
+    assert sm["review_score"] == 85
+    assert sm["review_passed"] is True
+    assert sm["rewrite_triggered"] is False

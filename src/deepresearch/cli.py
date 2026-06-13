@@ -105,7 +105,7 @@ def main(
     save_search: str | None = typer.Option(None, "--save-search", help="Save search results for replay"),
     replay_search: str | None = typer.Option(None, "--replay-search", help="Replay from saved search results"),
     compare: tuple[str, str] | None = typer.Option(None, "--compare", help="Compare two dry-run JSON outputs"),
-    output: str | None = typer.Option(None, "--output", help="Save dry-run output as JSON"),
+    output: str | None = typer.Option(None, "--output", help="Save run artifact as JSON (all modes)"),
 ):
     try:
         config = AppConfig.from_env().with_overrides(
@@ -158,22 +158,69 @@ def main(
                 }, f, indent=2, default=str)
             console.print(f"Search results saved to {save_search}")
 
-        # --output (dry-run or replay output)
-        if output and (dry_run or replay_search):
+        # --output (保存完整 RunArtifact，所有模式可用)
+        if output:
             import json as json_module
-            output_data = {
-                "evidence_cards": [c.model_dump() for c in result.get("evidence_cards", [])],
+            from datetime import datetime, timezone
+
+            from deepresearch import __version__
+            from deepresearch.metrics import compute_standard_metrics
+            from deepresearch.state import RunArtifact, RunMeta
+
+            determined_mode: str
+            if replay_search:
+                determined_mode = "replay"
+            elif dry_run:
+                determined_mode = "dry-run"
+            else:
+                determined_mode = "live"
+
+            meta = RunMeta(
+                app_version=__version__,
+                schema_version=1,
+                timestamp=datetime.now(timezone.utc).isoformat(),
+                mode=determined_mode,
+                config={
+                    "max_subquestions": config.max_subquestions,
+                    "results_per_query": config.results_per_query,
+                    "model": config.deepseek_model,
+                },
+            )
+
+            inputs = {
+                "question": result.get("question", question or ""),
+                "subquestions": [sq.model_dump() for sq in result.get("subquestions", [])],
+            }
+
+            pipeline = {
+                "search_results": [sr.model_dump() for sr in result.get("search_results", [])],
                 "extracted_claims": [c.model_dump() for c in result.get("extracted_claims", [])],
+                "evidence_cards": [c.model_dump() for c in result.get("evidence_cards", [])],
                 "evidence_metrics": result.get("evidence_metrics", {}),
             }
+
+            standard_metrics = compute_standard_metrics(result)
+
             review = result.get("review")
-            if review is not None:
-                output_data["review"] = review.model_dump()
-            output_data["review_rewritten"] = result.get("review_rewritten", False)
-            output_data["report_status"] = result.get("report_status")
+            output_section = {
+                "report_markdown": result.get("report_markdown", ""),
+                "report_status": result.get("report_status"),
+                "review": review.model_dump() if review is not None else None,
+                "validation_failures": result.get("validation_failures", []),
+                "output_path": result.get("output_path"),
+            }
+
+            artifact = RunArtifact(
+                meta=meta,
+                inputs=inputs,
+                pipeline=pipeline,
+                standard_metrics=standard_metrics,
+                output=output_section,
+            )
+
             with open(output, "w", encoding="utf-8") as f:
-                json_module.dump(output_data, f, indent=2, default=str)
-            console.print(f"Benchmark output saved to {output}")
+                json_module.dump(artifact.model_dump(), f, indent=2, default=str)
+            console.print(f"Run artifact saved to {output}")
 
         if dry_run:
             console.print("\n[Dry run] Evidence extraction complete.\n")
