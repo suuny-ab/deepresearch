@@ -38,6 +38,20 @@ DEEPSEEK_MODEL=deepseek-v4-pro
 
 Do not commit or share `.env`; it contains API secrets. Keep real keys out of source control.
 
+## Observability
+
+This project uses [LangSmith](https://smith.langchain.com/) for tracing. Set these environment variables in `.env`:
+
+```env
+LANGCHAIN_TRACING_V2=true
+LANGCHAIN_API_KEY=your_langsmith_api_key
+LANGCHAIN_PROJECT=deepresearch
+```
+
+If `LANGCHAIN_API_KEY` is not set, tracing is silently skipped — the agent works normally without it.
+
+Each run automatically captures: node inputs/outputs, LLM token usage, and execution latency in the LangSmith UI.
+
 ## Run
 
 ```bash
@@ -51,8 +65,7 @@ uv run deepresearch "AI 搜索引擎的发展趋势" \
   --max-subquestions 5 \
   --results-per-query 5 \
   --output-dir reports \
-  --model deepseek-v4-pro \
-  --verbose
+  --model deepseek-v4-pro
 ```
 
 ## Test
@@ -106,16 +119,6 @@ Example failure path:
 ```text
 reports/2026-06-11-092627-ai-failed.md
 ```
-
-## Verbose mode
-
-Use `--verbose` to inspect workflow summaries:
-
-```bash
-uv run deepresearch "AI 搜索引擎的发展趋势" --verbose
-```
-
-Verbose mode prints subquestions, search query summaries, result counts, research note counts, review score, and non-fatal errors. It does not print API keys or full raw search payloads.
 
 Reports are saved as timestamped Markdown files under `reports/`.
 Each saved report includes a `Quality Review` section.
