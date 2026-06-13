@@ -23,7 +23,6 @@ class AppConfig:
     max_subquestions: int = 5
     results_per_query: int = 5
     output_dir: str = "reports"
-    verbose: bool = False
 
     @classmethod
     def from_env(cls) -> "AppConfig":
@@ -45,7 +44,6 @@ class AppConfig:
         results_per_query: int | None = None,
         output_dir: str | None = None,
         model: str | None = None,
-        verbose: bool | None = None,
     ) -> "AppConfig":
         return AppConfig(
             deepseek_api_key=self.deepseek_api_key,
@@ -55,7 +53,6 @@ class AppConfig:
             max_subquestions=self.max_subquestions if max_subquestions is None else max_subquestions,
             results_per_query=self.results_per_query if results_per_query is None else results_per_query,
             output_dir=self.output_dir if output_dir is None else output_dir,
-            verbose=self.verbose if verbose is None else verbose,
         )
 
     def validate_required(self) -> None:
