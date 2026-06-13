@@ -81,7 +81,6 @@ class ResearchState(TypedDict, total=False):
     search_results: list[SearchResult]
     extracted_claims: list[ExtractedClaim]
     evidence_cards: list[EvidenceCard]
-    evidence_metrics: dict[str, Any]
     report_markdown: str
     report_status: Literal["success", "failed_validation"]
     rewrite_attempted: bool
@@ -95,37 +94,3 @@ class ResearchState(TypedDict, total=False):
 
 
 
-class RunMeta(BaseModel):
-    """一次运行的元信息。"""
-    app_version: str
-    schema_version: int = 1
-    timestamp: str
-    mode: Literal["live", "dry-run", "replay"]
-    config: dict[str, Any]
-
-
-class StandardMetrics(BaseModel):
-    """从 state 中计算的质量指标，与业务节点解耦。"""
-    evidence_card_count: int = 0
-    claims_per_source: float = 0.0
-    source_utilization: float = 0.0
-    corroboration_strong: int = 0
-    corroboration_weak: int = 0
-    corroboration_single: int = 0
-    domain_diversity: int = 0
-    review_score: int | None = None
-    review_passed: bool | None = None
-    rewrite_triggered: bool = False
-    citation_coverage: float | None = None
-    source_citation_rate: float | None = None
-    orphan_url_count: int | None = None
-    validation_first_pass: bool | None = None
-
-
-class RunArtifact(BaseModel):
-    """一次运行的完整快照，所有模式产出一致结构。"""
-    meta: RunMeta
-    inputs: dict[str, Any]
-    pipeline: dict[str, Any]
-    standard_metrics: StandardMetrics
-    output: dict[str, Any]
