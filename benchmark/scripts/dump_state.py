@@ -23,7 +23,7 @@ except Exception:
     subquestions = saved["subquestions"]
     search_results = saved["search_results"]
 
-app = _build_app(config, dry_run=True, replay_search=True)
+app = _build_app(config, dry_run=False, replay_search=True)
 result = app.invoke(
     {
         "question": saved["question"],
