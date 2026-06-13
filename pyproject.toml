@@ -1,6 +1,6 @@
 [project]
 name = "deepresearch"
-version = "0.1.0"
+version = "0.5.2"
 description = "LangGraph CLI Deep Research Agent using DeepSeek and Tavily"
 readme = "README.md"
 requires-python = ">=3.11"
