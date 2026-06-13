@@ -77,7 +77,6 @@ def _validation_failure_report(question: str, failures: CitationValidationResult
         "- 重新运行一次同样的问题。\n"
         "- 使用更具体的研究问题。\n"
         "- 增加 `--results-per-query` 以提供更多可用来源。\n"
-        "- 使用 `--verbose` 查看子问题、搜索 query 和搜索结果数量。\n"
     )
 
 
