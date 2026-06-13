@@ -37,13 +37,19 @@ def _build_app(config: AppConfig):
     review_report = make_review_report_node(llm)
     save_report = make_save_report_node(config.output_dir)
 
+    def _with_progress(label, node):
+        def wrapped(state):
+            console.print(label)
+            return node(state)
+        return wrapped
+
     return create_research_app(
-        plan_research=plan_research,
-        search_web=search_web,
-        prepare_evidence=prepare_evidence,
-        write_report=write_report,
-        review_report=review_report,
-        save_report=save_report,
+        plan_research=_with_progress("[1/6] Planning research...", plan_research),
+        search_web=_with_progress("[2/6] Searching web...", search_web),
+        prepare_evidence=_with_progress("[3/6] Preparing evidence...", prepare_evidence),
+        write_report=_with_progress("[4/6] Writing report...", write_report),
+        review_report=_with_progress("[5/6] Reviewing report...", review_report),
+        save_report=_with_progress("[6/6] Saving report...", save_report),
     )
 
 
@@ -63,13 +69,6 @@ def main(
             model=model,
         )
         config.validate_required()
-
-        console.print("[1/6] Planning research...")
-        console.print("[2/6] Searching web...")
-        console.print("[3/6] Preparing evidence...")
-        console.print("[4/6] Writing report...")
-        console.print("[5/6] Reviewing report...")
-        console.print("[6/6] Saving report...")
 
         research_app = _build_app(config)
         result = research_app.invoke({"question": question, "errors": []})
