@@ -5,3 +5,6 @@ __pycache__/
 reports/*.md
 !reports/.gitkeep
 .worktrees/
+result.json
+.superpowers/
+findings.json
