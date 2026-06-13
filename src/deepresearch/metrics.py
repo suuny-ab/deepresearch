@@ -28,7 +28,7 @@ def compute_standard_metrics(state: dict) -> StandardMetrics:
     # --- 证据维度 ---
 
     evidence_card_count = len(cards)
-    claims_per_source = evidence_card_count / max(len(search_results), 1)
+    claims_per_source = evidence_card_count / len(search_results) if search_results else 0.0
 
     # source_utilization: 被 evidence_cards 使用的搜索来源比例
     card_urls = {normalize_url(c.source_url) for c in cards if c.source_url}

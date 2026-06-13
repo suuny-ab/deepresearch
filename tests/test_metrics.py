@@ -229,3 +229,22 @@ def test_compute_standard_metrics_handles_missing_url():
     # 不应崩溃，source_utilization 和 domain_diversity 应为 0
     assert result.source_utilization == 0.0
     assert result.domain_diversity == 0
+
+
+def test_compute_standard_metrics_claims_per_source_empty_results():
+    """没有 search_results 时 claims_per_source 应为 0.0 而非除以零。"""
+    cards = [
+        EvidenceCard(
+            id="c1", subquestion_id="sq1", claim="Claim",
+            source_url="https://example.com/a",
+            source_title="T", supporting_snippet="...",
+            content_type="search_content",
+            corroboration_level="single_source",
+            corroborating_sources=[], confidence="medium",
+        ),
+    ]
+    state = {"evidence_cards": cards}
+
+    result = compute_standard_metrics(state)
+
+    assert result.claims_per_source == 0.0
