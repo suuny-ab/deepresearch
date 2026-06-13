@@ -1,6 +1,6 @@
 from tests.conftest import FakeLLMClient
 
-from deepresearch.nodes.prepare_evidence import make_prepare_evidence_node, _run_assertions
+from deepresearch.nodes.prepare_evidence import make_prepare_evidence_node
 from deepresearch.state import EvidenceCard, ExtractedSource, SearchResult, SubQuestion
 
 
@@ -49,8 +49,6 @@ def test_two_phase_evidence_pipeline():
     assert result["evidence_cards"][0].id == "e1"
     assert result["evidence_cards"][0].corroboration_level == "single_source"
     assert "extracted_claims" in result
-    assert result["evidence_metrics"]["evidence_cards"] == 1
-    assert "corroboration" in result["evidence_metrics"]
 
 
 def test_extract_fallback_when_phase1_fails():
@@ -100,43 +98,4 @@ def test_phase2_called_per_subquestion():
     assert {c.subquestion_id for c in result["evidence_cards"]} == {"q1", "q2"}
 
 
-def test_assertion_source_utilization_warns_on_zero_claim_source():
-    sources = [
-        ExtractedSource(subquestion_id="q1", url="https://a.example/x", title="A", raw_content="Content"),
-        ExtractedSource(subquestion_id="q1", url="https://b.example/y", title="B", raw_content="Content"),
-    ]
 
-    results = _run_assertions([], sources, [])
-    assert len(results) > 0
-    assert any("0 claims" in r for r in results)
-
-
-def test_assertion_corroboration_rate_warns_below_60_percent():
-    cards = [
-        EvidenceCard(id="e1", subquestion_id="q1", claim="C1", source_url="https://a.example/x", source_title="A",
-                     supporting_snippet="C1", content_type="extracted_content",
-                     corroboration_level="single_source", corroborating_sources=[], confidence="medium"),
-        EvidenceCard(id="e2", subquestion_id="q1", claim="C2", source_url="https://a.example/x", source_title="A",
-                     supporting_snippet="C2", content_type="extracted_content",
-                     corroboration_level="single_source", corroborating_sources=[], confidence="medium"),
-    ]
-    results = _run_assertions([], [], cards)
-    assert any("corroboration rate" in r.lower() for r in results)
-
-
-def test_assertion_passes_with_good_data():
-    from deepresearch.state import ExtractedClaim
-    claims = [
-        ExtractedClaim(id="e1", subquestion_id="q1", claim="C1", source_url="https://a.example/x", source_title="A",
-                       supporting_snippet="C1", content_type="extracted_content", confidence="high"),
-    ]
-    sources = [
-        ExtractedSource(subquestion_id="q1", url="https://a.example/x", title="A", raw_content="Content"),
-    ]
-    cards = [
-        EvidenceCard(id="e1", subquestion_id="q1", claim="C1", source_url="https://a.example/x", source_title="A",
-                     supporting_snippet="C1", content_type="extracted_content",
-                     corroboration_level="strongly_corroborated", corroborating_sources=["https://b.example/y", "https://c.example/z"], confidence="high"),
-    ]
-    results = _run_assertions(claims, sources, cards)
-    assert len([r for r in results if "[FAIL]" in r]) == 0

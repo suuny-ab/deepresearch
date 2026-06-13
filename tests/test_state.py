@@ -214,7 +214,6 @@ def test_research_state_no_longer_has_extracted_sources():
     state: ResearchState = {
         "question": "AI search",
         "evidence_cards": [],
-        "evidence_metrics": {},
     }
 
     assert "extracted_sources" not in state

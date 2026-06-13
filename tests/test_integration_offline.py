@@ -65,13 +65,4 @@ def test_full_graph_runs_offline(tmp_path):
     assert result["evidence_cards"][0].supporting_snippet == "AI search uses generated answers."
     assert result["evidence_cards"][0].id == "e1"
     assert result["evidence_cards"][0].content_type == "extracted_content"
-    assert result["evidence_metrics"] == {
-        "raw_search_results": 1,
-        "deduped_sources": 1,
-        "duplicates_removed": 0,
-        "extracted_sources": 1,
-        "evidence_cards": 1,
-        "corroboration": {"single_source": 1},
-        "confidence": {"high": 1},
-    }
     assert "# AI Search" in result["report_markdown"]
