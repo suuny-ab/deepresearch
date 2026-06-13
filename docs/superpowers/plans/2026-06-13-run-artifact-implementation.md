@@ -901,11 +901,12 @@ Expected: 全部测试 PASS
 
 ---
 
-## 完成后的验证清单
+## 验收标准
 
-- [ ] `uv run pytest` 全部通过
-- [ ] `--output` 在 live / dry-run / replay 三种模式均能产出有效 JSON
-- [ ] 产出的 JSON 包含 meta / inputs / pipeline / standard_metrics / output 五部分
-- [ ] standard_metrics 中的数值与 evidence_cards / review / report 的实际内容一致
-- [ ] 不加 `--output` 时行为与改动前完全一致
-- [ ] 终端输出（报告打印、verbose 摘要）不受 `--output` 影响
+详见 [spec §5.1.1](../specs/2026-06-13-testing-system-design.md#511-第一阶段验收标准)。5 条全部通过才算完成：
+
+1. `uv run pytest` — 全部 PASS，零回归
+2. `--output` 三种模式（live / dry-run / replay）均产出合法 RunArtifact JSON
+3. Artifact 结构完整 — meta/inputs/pipeline/standard_metrics/output 五部分字段齐全
+4. 终端输出行为不变 — 不加 `--output` 完全一致，加 `--output` 仅多一行保存提示
+5. Metrics 数值正确 — 手算验证 evidence_card_count、corroboration 分布、citation 指标

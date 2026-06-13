@@ -306,6 +306,58 @@ uv run deepresearch --replay-search frozen/q2.json --output result.json
 - 删除 `benchmark/results/` 旧格式文件（从头开始，不兼容旧格式）
 - 保留 `benchmark/frozen/`（replay 输入数据）
 
+#### 5.1.1 第一阶段验收标准
+
+以下全部通过才算 Phase 1 完成：
+
+**1. 全部离线测试零回归**
+
+```bash
+uv run pytest
+```
+
+所有已有测试 + 新增 metrics/cli 测试全部 PASS，不得有 FAIL 或 ERROR。
+
+**2. `--output` 三种模式均产出合法 RunArtifact**
+
+```bash
+# Live 模式
+uv run deepresearch "测试问题" --output result.json
+# Dry-run 模式
+uv run deepresearch "测试问题" --dry-run --output result.json
+# Replay 模式
+uv run deepresearch --replay-search benchmark/frozen/q3-ai-search-trends.json --output result.json
+```
+
+三种模式产出的 JSON 文件满足：
+- `json.load()` 可正常解析
+- `RunArtifact.model_validate(data)` 不抛 ValidationError
+
+**3. Artifact 结构完整性**
+
+用 `uv run python -c "from deepresearch.state import RunArtifact; import json; a = json.load(open('result.json')); RunArtifact.model_validate(a)"` 验证，且：
+
+- `meta` 包含：`app_version`、`schema_version`（=1）、`timestamp`、`mode`、`config`
+- `inputs` 包含：`question`、`subquestions`
+- `pipeline` 包含：`search_results`、`extracted_claims`、`evidence_cards`、`evidence_metrics`
+- `standard_metrics` 包含全部 14 个指标字段
+- `output` 包含：`report_markdown`、`report_status`、`review`、`validation_failures`、`output_path`
+
+**4. 终端输出行为不变**
+
+- 不加 `--output`：终端输出与改动前完全一致
+- 加 `--output`：终端输出不受影响（该打印报告打印报告，该显示 verbose 显示 verbose）
+- `--output` 只额外输出一行 `Run artifact saved to <path>`
+
+**5. Metrics 数值正确性**
+
+用已知数据验证（可手动计算对照）：
+
+- `evidence_card_count` = 手动数 evidence_cards 列表长度
+- `claims_per_source` = cards 数量 / search_results 数量
+- `corroboration_strong + corroboration_weak + corroboration_single` = evidence_card_count
+- 构造一个已知 citation 错误的报告，验证 `orphan_url_count > 0`、`citation_coverage < 1.0`
+
 ### 5.2 第二阶段：基准线回填
 
 **产出：** `benchmark/baselines/v0.3.1/` ~ `v0.5.2/` 的标准 RunArtifact
