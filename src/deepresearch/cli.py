@@ -207,6 +207,7 @@ def main(
                 "report_status": result.get("report_status"),
                 "review": review.model_dump() if review is not None else None,
                 "validation_failures": result.get("validation_failures", []),
+                "errors": result.get("errors", []),
                 "output_path": result.get("output_path"),
             }
 
