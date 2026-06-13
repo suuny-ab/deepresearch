@@ -1,4 +1,4 @@
-from collections import Counter, defaultdict
+from collections import defaultdict
 
 from pydantic import BaseModel
 
@@ -157,40 +157,6 @@ def _phase2_validate(llm, sq_id, sq_question, claims, sources, errors):
         ]
 
 
-def _build_metrics(raw, deduped, extracted_sources, evidence_cards):
-    return {
-        "raw_search_results": len(raw),
-        "deduped_sources": len(deduped),
-        "duplicates_removed": len(raw) - len(deduped),
-        "extracted_sources": len(extracted_sources),
-        "evidence_cards": len(evidence_cards),
-        "corroboration": dict(Counter(c.corroboration_level for c in evidence_cards)),
-        "confidence": dict(Counter(c.confidence for c in evidence_cards)),
-    }
-
-
-def _run_assertions(claims, sources, cards):
-    results = []
-    for source in sources:
-        count = len([c for c in claims if normalize_url(c.source_url) == normalize_url(source.url)])
-        if count == 0:
-            results.append(f"[FAIL] Source {source.url} contributed 0 claims")
-    if cards:
-        strong_weak = sum(1 for c in cards if c.corroboration_level in ("strongly_corroborated", "weakly_corroborated"))
-        rate = strong_weak / len(cards)
-        if rate < 0.6:
-            results.append(f"[FAIL] Corroboration rate {rate:.0%} below 60% threshold")
-    if claims:
-        sq_counts = defaultdict(int)
-        for c in claims:
-            sq_counts[c.subquestion_id] += 1
-        if sq_counts:
-            mx, mn = max(sq_counts.values()), min(sq_counts.values())
-            if mn > 0 and mx > mn * 3:
-                results.append(f"[FAIL] Claims distribution skewed: {dict(sq_counts)}")
-    return results
-
-
 def make_prepare_evidence_node(search_client, llm, max_sources_per_subquestion):
     def prepare_evidence(state):
         errors = list(state.get("errors", []))
@@ -235,16 +201,11 @@ def make_prepare_evidence_node(search_client, llm, max_sources_per_subquestion):
         all_cards = _drop_invalid_cards(all_cards, extracted_sources, errors)
         all_cards = [_validate_corroboration(c, extracted_urls, extracted_content_types) for c in all_cards]
 
-        assertion_results = _run_assertions(claims, extracted_sources, all_cards)
-        errors.extend(assertion_results)
-
-        evidence_metrics = _build_metrics(raw_results, deduped, extracted_sources, all_cards)
         return {
             **state,
             "search_results": deduped,
             "extracted_claims": claims,
             "evidence_cards": all_cards,
-            "evidence_metrics": evidence_metrics,
             "errors": errors,
         }
 
