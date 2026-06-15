@@ -73,6 +73,12 @@ When citing claims in the report body:
   skip undersupported topics — acknowledge the gap and explain what kind of
   information would be needed to address it.
 
+Before submitting, verify:
+- Every claim in the body has a [N] citation.
+- Every [N] is defined in ## Sources with a URL from the allowed list.
+- No source number is unused in ## Sources.
+- No bare URLs appear in the body.
+
 Sources format:
 [1] https://example.com/source-a
 [2] https://example.com/source-b

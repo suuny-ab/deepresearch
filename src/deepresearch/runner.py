@@ -92,21 +92,26 @@ def build_agent(
 
     if replay_search_results is not None:
         # Frozen replay: skip plan+search, start from prepare_evidence.
-        # The frozen data (subquestions + search_results) is injected via initial state.
+        # Convert dicts back to Pydantic models for the graph nodes.
+        from deepresearch.state import SearchResult as SR, SubQuestion as SQ
+
+        frozen_sq = [SQ(**s) if isinstance(s, dict) else s
+                     for s in replay_search_results.get("subquestions", [])]
+        frozen_sr = [SR(**r) if isinstance(r, dict) else r
+                     for r in replay_search_results.get("search_results", [])]
+
         app = build_replay_graph(
             prepare_evidence=prepare_evidence,
             write_report=write_report,
             save_report=save_report,
         )
-        frozen_subquestions = replay_search_results.get("subquestions", [])
-        frozen_search = replay_search_results.get("search_results", [])
 
         def run(question: str) -> ResearchState:
             return app.invoke({
                 "question": question,
                 "errors": [],
-                "subquestions": frozen_subquestions,
-                "search_results": frozen_search,
+                "subquestions": frozen_sq,
+                "search_results": frozen_sr,
             })
 
         return run

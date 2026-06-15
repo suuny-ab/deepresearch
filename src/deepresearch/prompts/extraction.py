@@ -28,7 +28,11 @@ def build_extraction_prompt(
         for source in group_sources:
             source_lines.append(f"  URL: {source.url}")
             source_lines.append(f"  Title: {source.title}")
-            source_lines.append(f"  Content ({source.format}): {source.raw_content}")
+            # Truncate to first 2500 chars — keeps key claims, cuts input tokens ~40%
+            content = source.raw_content or ""
+            if len(content) > 3000:
+                content = content[:2500] + f"\n\n... [truncated, {len(source.raw_content)} chars total]"
+            source_lines.append(f"  Content ({source.format}): {content}")
             source_lines.append("")
     source_lines.append("---")
 
