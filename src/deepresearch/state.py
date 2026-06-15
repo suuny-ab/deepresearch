@@ -3,6 +3,18 @@ from typing import Any, Literal, TypedDict
 from pydantic import BaseModel, Field, model_validator
 
 
+class UsageInfo(BaseModel):
+    """Token usage and cost for a single LLM call."""
+    prompt_tokens: int = 0
+    completion_tokens: int = 0
+    estimated_cost: float = 0.0
+
+
+class TokenUsage(UsageInfo):
+    """Token usage with node attribution for per-stage tracking."""
+    node: str = ""
+
+
 ContentType = Literal["search_content", "extracted_content"]
 Confidence = Literal["low", "medium", "high"]
 CorroborationLevel = Literal["single_source", "weakly_corroborated", "strongly_corroborated"]
@@ -91,6 +103,14 @@ class ResearchState(TypedDict, total=False):
     review_rewritten: bool
     output_path: str
     errors: list[str]
+    token_usage: list[TokenUsage]
+    # Internal fields used by multi-agent architecture
+    _agent_results: list[Any]
+    _contradictions: list[Any]
+    _contradictions_text: str
+    _cross_agent_corroborations: int
+    # Internal field used by ReAct architecture
+    _react_steps: list[Any]
 
 
 

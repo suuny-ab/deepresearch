@@ -8,6 +8,7 @@ def build_writing_prompt(
     evidence_cards: list[EvidenceCard] | None = None,
     allowed_source_urls: set[str] | None = None,
     review_feedback: str | None = None,
+    contradictions_text: str = "",
 ) -> str:
     if allowed_source_urls is not None:
         allowed_urls = sorted(allowed_source_urls)
@@ -24,9 +25,14 @@ Address each issue in the rewrite:
 
 {review_feedback}
 """
+    contradictions_section = ""
+    if contradictions_text:
+        contradictions_section = contradictions_text
+
     return f"""
 请使用中文撰写结构化 Markdown 深度研究报告，除非用户问题使用其他语言。
 {feedback_section}
+{contradictions_section}
 引用规则必须严格遵守：
 1. 正文中的每个关键论点必须使用编号引用，例如 [1]、[2]。
 2. 正文中不要出现裸 URL。

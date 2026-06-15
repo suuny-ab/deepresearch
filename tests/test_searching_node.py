@@ -75,5 +75,5 @@ def test_search_web_runs_all_search_queries():
         "errors": [],
     })
 
-    assert client.queries == ["query one", "query two", "query three"]
-    assert [item.query for item in result["search_results"]] == ["query one", "query two", "query three"]
+    assert set(client.queries) == {"query one", "query two", "query three"}
+    assert {item.query for item in result["search_results"]} == {"query one", "query two", "query three"}

@@ -1,7 +1,7 @@
 from deepresearch.citations import CitationFailureReason, CitationValidationResult, validate_citations
 from deepresearch.clients.llm import LLMClient
 from deepresearch.prompts.writing import build_writing_prompt
-from deepresearch.state import ResearchState
+from deepresearch.state import ResearchState, TokenUsage
 
 
 def _format_urls(urls: list[str]) -> str:
@@ -125,7 +125,13 @@ Allowed URLs:
 def make_write_report_node(llm: LLMClient):
     def write_report(state: ResearchState) -> ResearchState:
         results = state.get("search_results", [])
-        if not results:
+        evidence_cards = state.get("evidence_cards", [])
+        contradictions_text = state.get("_contradictions_text", "")
+        usage_entries: list[TokenUsage] = list(state.get("token_usage", []))
+        state["token_usage"] = usage_entries  # in-place mutation; picked up by all {**state, ...} returns
+        # In multi-agent mode, search happens per-agent; evidence_cards may exist
+        # even when the global search_results list is empty.
+        if not results and not evidence_cards:
             report = (
                 f"# Research could not be completed\n\n"
                 f"The question was: {state['question']}\n\n"
@@ -150,10 +156,12 @@ def make_write_report_node(llm: LLMClient):
             evidence_cards=state.get("evidence_cards", []),
             allowed_source_urls=allowed_urls,
             review_feedback=review_feedback,
+            contradictions_text=contradictions_text,
         )
         errors = list(state.get("errors", []))
         try:
-            report = llm.complete(prompt)
+            report, usage = llm.complete(prompt)
+            usage_entries.append(TokenUsage(node="write_report", prompt_tokens=usage.prompt_tokens, completion_tokens=usage.completion_tokens, estimated_cost=usage.estimated_cost))
         except Exception as exc:
             errors.append(f"LLM call failed in write_report: {exc}")
             return {
@@ -189,7 +197,8 @@ def make_write_report_node(llm: LLMClient):
         )
         rewrite_prompt = _build_rewrite_prompt(state["question"], report, first_validation, allowed_urls)
         try:
-            rewritten_report = llm.complete(rewrite_prompt)
+            rewritten_report, rw_usage = llm.complete(rewrite_prompt)
+            usage_entries.append(TokenUsage(node="write_report", prompt_tokens=rw_usage.prompt_tokens, completion_tokens=rw_usage.completion_tokens, estimated_cost=rw_usage.estimated_cost))
         except Exception as exc:
             errors.append(f"LLM call failed in write_report rewrite: {exc}")
             failure_report = _validation_failure_report(state["question"], [first_validation])

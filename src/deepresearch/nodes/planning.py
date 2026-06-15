@@ -2,7 +2,7 @@ from pydantic import BaseModel
 
 from deepresearch.clients.llm import LLMClient
 from deepresearch.prompts.planning import build_planning_prompt
-from deepresearch.state import ResearchState, SubQuestion
+from deepresearch.state import ResearchState, SubQuestion, TokenUsage
 from deepresearch.utils.json import JSONParseError, parse_json_object
 
 
@@ -15,7 +15,9 @@ def make_plan_research_node(llm: LLMClient, max_subquestions: int):
         question = state["question"]
         errors = list(state.get("errors", []))
         prompt = build_planning_prompt(question, max_subquestions)
-        text = llm.complete(prompt)
+        text, usage = llm.complete(prompt)
+        usage_entries: list[TokenUsage] = list(state.get("token_usage", []))
+        usage_entries.append(TokenUsage(node="plan_research", prompt_tokens=usage.prompt_tokens, completion_tokens=usage.completion_tokens, estimated_cost=usage.estimated_cost))
         try:
             parsed = parse_json_object(text, PlanningResponse)
             subquestions = parsed.subquestions[:max_subquestions]
@@ -30,6 +32,6 @@ def make_plan_research_node(llm: LLMClient, max_subquestions: int):
                     rationale="Fallback from original question",
                 )
             ]
-        return {**state, "subquestions": subquestions, "errors": errors}
+        return {**state, "subquestions": subquestions, "errors": errors, "token_usage": usage_entries}
 
     return plan_research

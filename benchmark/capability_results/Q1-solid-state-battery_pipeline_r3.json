@@ -1,0 +1,46 @@
+{
+  "question_id": "Q1-solid-state-battery",
+  "architecture": "pipeline",
+  "round_num": 3,
+  "report": "",
+  "capability": {
+    "architecture": "",
+    "question_id": "",
+    "round_num": 0,
+    "distinct_claims": 0,
+    "quality_weighted_claims": 0.0,
+    "avg_sources_per_claim": 0.0,
+    "single_source_ratio": 0.0,
+    "max_corroboration_depth": 0,
+    "unique_domains_cited": 0,
+    "fulltext_ratio": null,
+    "strong_corroboration_pct": 0.0,
+    "weak_corroboration_pct": 0.0,
+    "cross_perspective_pct": null,
+    "contradictions_acknowledged": false,
+    "coverage_score": 0.0,
+    "sections_present": [],
+    "honesty_score": 0.0,
+    "hedge_word_count": 0,
+    "contradiction_presented": false,
+    "composite_score": 0.0,
+    "errors": []
+  },
+  "process": {
+    "architecture": "",
+    "wall_time_seconds": 0.0,
+    "total_tokens": 0,
+    "total_cost_usd": 0.0,
+    "llm_call_count": 0,
+    "search_query_count": 0,
+    "pages_fetched": null,
+    "iterations": 0,
+    "dead_searches": null,
+    "error_count": 0,
+    "fulltext_ratio_na": false,
+    "dead_end_rate_na": false
+  },
+  "errors": [
+    "Agent crashed: TavilyKeyPool.record_error() got an unexpected keyword argument 'is_quota'"
+  ]
+}

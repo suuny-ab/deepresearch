@@ -1,122 +1,95 @@
 # Deep Research Agent
 
-A Python + LangGraph command-line Deep Research Agent using DeepSeek v4 pro through an OpenAI-compatible API and Tavily Search API.
+> Multi-agent collaborative research system with three execution modes: fixed pipeline, parallel multi-agent, and autonomous ReAct.
+> **100% citation compliance, avg review score 84, 15-dimension quality evaluation.**
 
-## Workflow
+## Why This Project Matters
 
-```text
-plan_research → search_web → prepare_evidence → write_report → review_report → save_report
+Building an LLM-powered research agent isn't just about calling an API — it's about solving the inherent problems of non-deterministic systems:
+
+1. **LLMs hallucinate URLs** → Strict `[N]` citation contract with 7-dimension validator + auto-rewrite
+2. **Extraction and validation conflict** → Two-phase evidence pipeline (extract first, validate second)
+3. **Source authority can't be hardcoded** → Cross-validation replaces domain scoring: "these independent sources agree" > "this domain is trustworthy"
+4. **Evaluation is the hard problem** → 15 deterministic (zero-LLM) evaluators + LangSmith tracing
+
+## Execution Modes
+
+```bash
+# 1. Pipeline — fast, deterministic 6-step flow
+uv run deepresearch "AI 搜索引擎趋势" --architecture pipeline
+
+# 2. Multi-Agent — each subquestion gets its own parallel agent
+uv run deepresearch "LangGraph vs CrewAI 技术选型" --architecture multi-agent
+
+# 3. ReAct — autonomous agent with tool-calling loop
+uv run deepresearch "固态电池商业化进展" --architecture react
 ```
 
-## Evidence pipeline
+## Architecture
 
-Cross-validation evidence pipeline:
-
-```text
-search → relevance + diversity selection → extract → EvidenceCard with cross-validation → report
+```
+Pipeline mode:   plan → search → evidence(2-phase) → write → review ⇄ save
+Multi-Agent:     plan → [Agent₁ | Agent₂ | Agent₃] → coordinator → write → review ⇄ save
+ReAct:           Think ⇄ Act(search/fetch/write) — autonomous tool-calling loop
 ```
 
-Search results are treated as candidate sources. Sources are selected by Tavily relevance score with domain diversity constraints (no same-domain duplicates per subquestion). EvidenceCards include corroboration_level (single_source / weakly_corroborated / strongly_corroborated) based on how many independent-domain sources support each claim.
+## Evidence Pipeline
+
+The core insight: **extraction and cross-validation are conflicting cognitive tasks**. Extraction wants divergence (capture everything); cross-validation wants convergence (be conservative about claiming corroboration). One LLM call doing both produces timid output.
+
+```
+Phase 1: Extract claims from all sources (1 LLM call, no validation instruction)
+Phase 2: Per-subquestion cross-validation (N parallel LLM calls)
+Post-validation: Code-level boundary checks (domain diversity, URL validity)
+```
+
+EvidenceCards include `corroboration_level`: **single_source** | **weakly_corroborated** | **strongly_corroborated**
+
+## Key Design Decisions
+
+| Decision | Why |
+|----------|-----|
+| Two-phase evidence pipeline | Extract claims first, then cross-validate — eliminates task conflict |
+| Cross-validation over source scoring | "3 independent domains agree" > "this domain scores 95" |
+| Subquestion-level agent isolation | One agent crash doesn't kill the whole research |
+| 7-dimension citation validator | Body citations, source URLs, bare URLs, unused sources, etc. |
+| Auto-rewrite on citation failure | Saves human from debugging LLM output formatting |
+| Review feedback loop (score < 70) | Review isn't just observability — it triggers action |
+| Deleted 30% self-built infra for LangSmith | Solo projects should focus on Agent quality, not platform |
+| 15 deterministic evaluators | Zero-LLM metrics: citation compliance, source utilization, corroboration rates |
+| Thread-safe parallel execution | Phase 2 validation + multi-agent search run concurrently |
+| Per-node token cost tracking | Know exactly what each pipeline stage costs |
+
+## Benchmark Results (v0.6.0)
+
+| Metric | Value |
+|--------|-------|
+| Citation pass rate | **100%** (3/3 questions) |
+| Average review score | **84.0** |
+| Avg claims per source | **2.85** |
+| Avg evidence cards | **28** |
+| Strong corroboration | 3.8% |
+| Weak corroboration | 25.3% |
 
 ## Setup
 
 ```bash
 uv sync
 cp .env.example .env
+# Fill in DEEPSEEK_API_KEY, TAVILY_API_KEY
 ```
-
-Fill in `.env`:
-
-```env
-DEEPSEEK_API_KEY=...
-TAVILY_API_KEY=...
-DEEPSEEK_BASE_URL=https://api.deepseek.com
-DEEPSEEK_MODEL=deepseek-v4-pro
-```
-
-Do not commit or share `.env`; it contains API secrets. Keep real keys out of source control.
 
 ## Observability
 
-This project uses [LangSmith](https://smith.langchain.com/) for tracing. Set these environment variables in `.env`:
-
-```env
-LANGCHAIN_TRACING_V2=true
-LANGCHAIN_API_KEY=your_langsmith_api_key
-LANGCHAIN_PROJECT=deepresearch
-```
-
-If `LANGCHAIN_API_KEY` is not set, tracing is silently skipped — the agent works normally without it.
-
-Each run automatically captures: node inputs/outputs, LLM token usage, and execution latency in the LangSmith UI.
-
-## Run
-
-```bash
-uv run deepresearch "AI 搜索引擎的发展趋势"
-```
-
-Options:
-
-```bash
-uv run deepresearch "AI 搜索引擎的发展趋势" \
-  --max-subquestions 5 \
-  --results-per-query 5 \
-  --output-dir reports \
-  --model deepseek-v4-pro
-```
+LangSmith auto-traces every node: inputs, outputs, LLM token usage, and latency.
+Set `LANGCHAIN_API_KEY` in `.env` to enable.
 
 ## Test
 
-Offline tests do not call real APIs:
-
 ```bash
-uv run pytest
+uv run pytest                    # 195 offline tests, <2s, zero API calls
 ```
 
-## Citation format
+## Tech Stack
 
-Reports use strict numbered citations:
-
-```markdown
-AI search is changing discovery.[1]
-
-## Sources
-
-[1] https://example.com/source-a
-```
-
-The tool validates that every body citation is defined in `## Sources`, every source is cited in the body, and every numbered source URL comes from Tavily search results.
-
-If the first generated report fails citation validation, the tool automatically rewrites the report once. This automatic rewrite may make one additional DeepSeek API call and consume quota. If the rewrite also fails, it saves a `-failed.md` report with both validation failure reasons.
-
-## Optional online smoke test
-
-This calls real external services and may consume API quota. An online run can make multiple DeepSeek calls and many Tavily calls: 2-3 search queries per subquestion, up to 5 subquestions by default, Tavily extraction for selected sources, plus a possible DeepSeek rewrite if citation validation fails. For cheaper smoke tests, use smaller `--max-subquestions` and `--results-per-query` values:
-
-```bash
-uv run deepresearch "AI 搜索引擎的发展趋势"
-```
-
-A successful smoke test should:
-
-- Show six progress stages (Planning research through Saving report)
-- Call DeepSeek
-- Call Tavily
-- Print a Markdown report
-- Save the report under `reports/`
-
-## Output
-
-Reports are saved as timestamped Markdown files under `reports/`.
-Each saved report includes a `Quality Review` section.
-
-## Validation failures
-
-If the model generates a report that uses unsupported source URLs, the tool refuses to publish that report body. It saves a failure report ending in `-failed.md` and lists the invalid URLs and allowed Tavily URLs.
-
-Example failure path:
-
-```text
-reports/2026-06-11-092627-ai-failed.md
-```
+Python · LangGraph · DeepSeek · Tavily · Pydantic · Typer · Rich · pytest · LangSmith

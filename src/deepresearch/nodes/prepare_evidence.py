@@ -1,6 +1,6 @@
 import json
 from collections import defaultdict
-
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any
 from pydantic import BaseModel, model_validator
 
@@ -8,6 +8,7 @@ from deepresearch.prompts.evidence import build_validation_prompt
 from deepresearch.prompts.extraction import build_extraction_prompt
 from deepresearch.state import (
     EvidenceCard, ExtractedClaim, ExtractedSource, ResearchState, SearchResult,
+    TokenUsage, UsageInfo,
 )
 from deepresearch.utils.json import JSONParseError, _extract_json_text, parse_json_object
 from deepresearch.utils.urls import extract_domain, normalize_url
@@ -141,10 +142,10 @@ def _validate_corroboration(card, extracted_urls, extracted_content_types):
 def _phase1_extract(llm, question, sources, subquestions, errors):
     prompt = build_extraction_prompt(question, sources, subquestions)
     try:
-        text = llm.complete(prompt)
+        text, usage = llm.complete(prompt)
     except Exception as exc:
         errors.append(f"LLM call failed in phase1_extract: {exc}")
-        return []
+        return [], UsageInfo()
     try:
         raw = _extract_json_text(text)
         raw_claims = json.loads(raw).get("claims", [])
@@ -156,18 +157,18 @@ def _phase1_extract(llm, question, sources, subquestions, errors):
                 f"Phase 1 extraction: {raw_count - valid_count}/{raw_count} claims "
                 f"dropped due to validation errors (e.g. missing or misspelled fields)"
             )
-        return parsed.claims
+        return parsed.claims, usage
     except (JSONParseError, json.JSONDecodeError) as exc:
         errors.append(f"Phase 1 extraction failed: {exc}")
-        return []
+        return [], UsageInfo()
 
 
 def _phase2_validate(llm, sq_id, sq_question, claims, sources, errors):
     if not claims:
-        return []
+        return [], UsageInfo()
     prompt = build_validation_prompt(sq_id, sq_question, claims, sources)
     try:
-        text = llm.complete(prompt)
+        text, usage = llm.complete(prompt)
     except Exception as exc:
         errors.append(f"LLM call failed in phase2_validate for {sq_id}: {exc}")
         return [
@@ -179,7 +180,7 @@ def _phase2_validate(llm, sq_id, sq_question, claims, sources, errors):
                 corroboration_level="single_source", corroborating_sources=[],
                 confidence="low",
             ) for c in claims
-        ]
+        ], UsageInfo()
     try:
         raw = _extract_json_text(text)
         raw_cards = json.loads(raw).get("evidence_cards", [])
@@ -191,7 +192,7 @@ def _phase2_validate(llm, sq_id, sq_question, claims, sources, errors):
                 f"Phase 2 validation [{sq_id}]: {raw_count - valid_count}/{raw_count} cards "
                 f"dropped due to validation errors"
             )
-        return list(parsed.evidence_cards)
+        return list(parsed.evidence_cards), usage
     except (JSONParseError, json.JSONDecodeError) as exc:
         errors.append(f"Phase 2 validation failed for {sq_id}: {exc}")
         return [
@@ -203,12 +204,13 @@ def _phase2_validate(llm, sq_id, sq_question, claims, sources, errors):
                 corroboration_level="single_source", corroborating_sources=[],
                 confidence="low",
             ) for c in claims
-        ]
+        ], UsageInfo()
 
 
 def make_prepare_evidence_node(search_client, llm, max_sources_per_subquestion):
     def prepare_evidence(state):
         errors = list(state.get("errors", []))
+        usage_entries: list[TokenUsage] = list(state.get("token_usage", []))
         raw_results = list(state.get("search_results", []))
         subquestions = state.get("subquestions", [])
         question = state.get("question", "")
@@ -230,20 +232,46 @@ def make_prepare_evidence_node(search_client, llm, max_sources_per_subquestion):
                     extracted_sources.append(src)
 
         # Phase 1: Extract claims (1 LLM call)
-        claims = _phase1_extract(llm, question, extracted_sources, subquestions, errors)
+        claims, p1_usage = _phase1_extract(llm, question, extracted_sources, subquestions, errors)
+        usage_entries.append(TokenUsage(node="prepare_evidence", prompt_tokens=p1_usage.prompt_tokens, completion_tokens=p1_usage.completion_tokens, estimated_cost=p1_usage.estimated_cost))
 
-        # Phase 2: Validate per subquestion (N LLM calls)
+        # Phase 2: Validate per subquestion (N LLM calls, parallel)
         sq_map = {sq.id: sq.question for sq in subquestions}
         sources_by_sq = defaultdict(list)
         for src in extracted_sources:
             sources_by_sq[src.subquestion_id].append(src)
 
-        all_cards = []
-        for sq_id, sq_sources in sources_by_sq.items():
+        def _validate_one(sq_id, sq_sources):
             sq_claims = [c for c in claims if c.subquestion_id == sq_id]
             sq_question = sq_map.get(sq_id, sq_id)
-            sq_cards = _phase2_validate(llm, sq_id, sq_question, sq_claims, sq_sources, errors)
-            all_cards.extend(sq_cards)
+            thread_errors: list[str] = []
+            cards, p2_usage = _phase2_validate(llm, sq_id, sq_question, sq_claims, sq_sources, thread_errors)
+            return cards, p2_usage, thread_errors
+
+        all_cards = []
+        sq_ids = list(sources_by_sq.keys())
+        if len(sq_ids) <= 1:
+            # Single subquestion — no parallelism benefit
+            for sq_id in sq_ids:
+                cards, p2_usage, thread_errors = _validate_one(sq_id, sources_by_sq[sq_id])
+                all_cards.extend(cards)
+                usage_entries.append(TokenUsage(node="prepare_evidence", prompt_tokens=p2_usage.prompt_tokens, completion_tokens=p2_usage.completion_tokens, estimated_cost=p2_usage.estimated_cost))
+                errors.extend(thread_errors)
+        else:
+            with ThreadPoolExecutor(max_workers=len(sq_ids)) as executor:
+                futures = {
+                    executor.submit(_validate_one, sq_id, sources_by_sq[sq_id]): sq_id
+                    for sq_id in sq_ids
+                }
+                for future in as_completed(futures):
+                    sq_id = futures[future]
+                    try:
+                        cards, p2_usage, thread_errors = future.result()
+                        all_cards.extend(cards)
+                        usage_entries.append(TokenUsage(node="prepare_evidence", prompt_tokens=p2_usage.prompt_tokens, completion_tokens=p2_usage.completion_tokens, estimated_cost=p2_usage.estimated_cost))
+                        errors.extend(thread_errors)
+                    except Exception as exc:
+                        errors.append(f"Phase 2 validation failed for {sq_id}: {exc}")
 
         # Post-validate
         extracted_urls = {normalize_url(s.url) for s in extracted_sources}
@@ -256,6 +284,7 @@ def make_prepare_evidence_node(search_client, llm, max_sources_per_subquestion):
             "extracted_claims": claims,
             "evidence_cards": all_cards,
             "errors": errors,
+            "token_usage": usage_entries,
         }
 
     return prepare_evidence

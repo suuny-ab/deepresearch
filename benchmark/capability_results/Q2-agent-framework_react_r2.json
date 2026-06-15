@@ -1,0 +1,53 @@
+{
+  "question_id": "Q2-agent-framework",
+  "architecture": "react",
+  "round_num": 2,
+  "report": "# LangGraph 与 CrewAI 对比分析报告\n\n## Summary\n\nLangGraph 与 CrewAI 是当前构建 AI Agent 系统的两大主流框架，二者在架构设计哲学上存在根本差异：LangGraph 提供低层次的**有状态图（Stateful Graph）** 控制，适用于需要精细编排、分支循环和人类干预的复杂工作流；CrewAI 则采用高层次的**团队协作（Crew）** 抽象，强调角色分配与任务委派，适合快速搭建多 Agent 协作系统。本章报告基于官方文档与社区案例，客观比较二者在架构、适用场景、成熟度及局限性的实际差异。\n\n---\n\n## Key Findings\n\n1. **架构范式不同**：LangGraph 以有向图（DAG / 循环图）为核心，开发者需手动定义节点、边及状态转移；CrewAI 以“团队-角色-任务”模型封装协作逻辑，内置预定义协作模式。[1][3]\n\n2. **控制粒度与抽象层次**：LangGraph 提供细粒度的流程控制，支持分支、循环、暂停/恢复、人机循环（Human-in-the-loop）；CrewAI 则更高层，开发者只需定义 Agent 角色、任务目标，框架自动调度协作。[1][3]\n\n3. **成熟度与社区**：CrewAI 于 2023 年 11 月首次发布（v0.1.0），GitHub 星标 33.4k，PyPI 月下载 1.38M；LangGraph 于 2024 年 1 月首次发布（v0.0.9），GitHub 星标 14.9k，PyPI 月下载 6.17M，2025 年 10 月发布 1.0 稳定版。[1]\n\n4. **依赖关系**：LangGraph 基于 LangChain（langchain-core）构建；CrewAI 从零构建，无 LangChain 依赖。[1]\n\n5. **企业采纳**：LangGraph 已被 Klarna、Replit、Elastic 等采用；CrewAI 拥有超过 100,000 名通过社区课程认证的开发者。[1]\n\n---\n\n## Detailed Analysis\n\n### 1. 架构设计哲学\n\n- **LangGraph —— 有状态图式编排**  \n  LangGraph 将 Agent 系统建模为一张“图”，节点代表 LLM 调用、工具执行或逻辑判断，边代表状态转移。其核心哲学是 **可控性与灵活性**：开发者能够明确定义每个步骤的前置条件、分支逻辑、循环迭代，并利用内置的持久化机制（Persistence）在任意节点暂停、恢复或插入人类反馈。这种设计适合需要高度定制的流水线，例如多步推理、复杂业务规则、需要审计追踪的合规场景。[1][3]\n\n- **CrewAI —— 角色化团队协作**  \n  CrewAI 的设计灵感来自“剧组”模式：用户定义多个 Agent（每个 Agent 拥有独立角色、目标和背景）、分配具体任务，框架自动协调 Agent 之间的信息传递与依赖关系。其哲学是 **易用性与快速部署**：通过高层次 API 隐藏了内部调度细节，开发者只需描述“谁做什么”，无需关注执行流逻辑。CrewAI 近期还加入了多模态支持和 Agentic RAG 能力，进一步降低了非技术用户的门槛。[1][3]\n\n### 2. 适用场景对比\n\n| 场景 | LangGraph 适合性 | CrewAI 适合性 |\n|------|------------------|---------------|\n| 复杂、多步骤推理（如合同审核、科学计算） | ★★★★★ 高度可控，支持条件分支与循环 | ★★★ 需要手动分解为多个角色 |\n| 需要人机协作（人工审核、异常处理） | ★★★★★ 原生支持暂停/恢复/人类输入 | ★★★ 需借助外部回调 |\n| 快速原型、低代码团队 | ★★ 学习曲线陡峭，需理解图概念 | ★★★★★ 开箱即用 |\n| 多 Agent 独立协作（如市场调研、内容生成） | ★★★ 需自行设计通信协议 | ★★★★★ 内置角色协商与任务委派 |\n| 企业级大规模部署（可扩展性、合规） | ★★★★★ 成熟稳定的 1.0 版本，有 Klarna 等案例 | ★★★ 版本迭代快（v0.177），尚在成长 |\n\n### 3. 局限性\n\n- **LangGraph 的局限**  \n  - 学习成本高：需要理解 LangChain 生态、有状态图概念，以及节点的序列化/反序列化。[1][3]  \n  - 开发效率低：对于简单的“一个 Agent 调另一个 Agent”场景，手动构建图显得过度工程化。[3]  \n  - 社区规模较小（GitHub 14.9k stars），第三方插件和轮子不如 CrewAI 丰富。[1]\n\n- **CrewAI 的局限**  \n  - 控制粒度不足：内置协作模式可能无法满足非标准流程（如复杂条件分支、循环控制）；[3]  \n  - 状态管理相对弱：缺乏 LangGraph 那样的持久化与恢复能力，在长时间运行、失败重试场景中不够坚实；[1]  \n  - 企业应用尚未大规模验证：版本号低于 1.0，虽然社区活跃但生产稳定性证据较少。[1]\n\n### 4. 其他业界观点\n\nIBM 开发者文章对比指出，CrewAI 和 LangGraph 的差异本质是“高层导航 vs 底层驾驶”的选择：CrewAI 提供预设路线，LangGraph 让用户自己画出地图。[2]  \n开发者 Digest 的对比进一步强调，对于需要状态跟踪和分支回退的场景，LangGraph 是唯一选择；对于想要快速组建“Agent 团队”的用户，CrewAI 更高效。[3]  \nYouTube 上 ClickIT 频道的视频（2026年1月）也指出，真实系统需要记忆、控制和人机监督——这恰恰是 LangGraph 的优势领域。[5]\n\n---\n\n## Uncertainties\n\n1. **定价与企业支持**：ZenML 博客提及 LangGraph 和 CrewAI 的定价对比，但未提供具体数字。两框架均为开源，但各自背后的公司（LangChain Inc. 与 CrewAI Inc.）提供的云服务或托管方案的详细功能与价格尚不透明。[1]\n2. **性能基准**：缺乏官方或独立的基准测试对比两者的延迟、吞吐量或成本效率。现有资料多为架构层面的定性分析，实际运行性能受 LLM 本身影响较大，框架本身的 overhead 尚不明确。\n3. **长期社区趋势**：CrewAI 在星标数上领先，但 LangGraph 下载量更高（6.17M vs 1.38M），数据背后的用户类型（原型 vs 生产）无法精确判断。2026 年之后的框架走向尚无定论。\n4. **与 AutoGen 的关系**：部分文献将 AutoGen 纳入对比（如 [4][5]），但本次聚焦 LangGraph 与 CrewAI，未深入讨论 AutoGen 的定位。\n\n---\n\n## Conclusion\n\nLangGraph 与 CrewAI 并非相互替代的工具，而是面向不同抽象层次与工程需求的选择：\n\n- 如果项目需要**精细控制、复杂状态管理、严格的合规与人机协作**，LangGraph 是更可靠的底层框架，尤其适合企业级定制化 Agent 系统。\n- 如果目标是**快速构建、快速迭代、低门槛的多 Agent 协作**，CrewAI 提供更高的开发效率和丰富的预置模式，适合中小团队和 POC 验证。\n\n建议团队根据自身对控制力、学习成本、生产稳定性及社区生态的需求综合评估。随着两框架持续演化（如 CrewAI 增加更多控制点，LangGraph 简化高阶 API），未来二者的界限可能逐渐模糊。\n\n---\n\n## Sources\n\n[1] Hamza Tahir, “LangGraph vs CrewAI: Let’s Learn About the Differences”, ZenML Blog, June 2025 (updated Nov 2025).  \nhttps://www.zenml.io/blog/langgraph-vs-crewai\n\n[2] IBM Developer, “Comparing AI agent frameworks: CrewAI, LangGraph, and BeeAI”, 2025.  \nhttps://developer.ibm.com/articles/awb-comparing-ai-agent-frameworks-crewai-langgraph-and-beai\n\n[3] Developers Digest, “AI Agent Frameworks Compared: LangGraph vs CrewAI vs Mastra ...”, 2025.  \nhttps://www.developersdigest.tech/guides/ai-agent-frameworks-compared\n\n[4] PE Collective, “AI Agent Frameworks: LangGraph vs CrewAI vs AutoGen 2026”, 2026.  \nhttps://pecollective.com/blog/ai-agent-frameworks-compared\n\n[5] ClickIT DevOps & Software Development, “Your Next AI Framework Decision: LangGraph vs CrewAI vs AutoGen”, YouTube, Jan 2026.  \nhttps://www.youtube.com/watch?v=skXmWJGsHu8&vl=en-US",
+  "capability": {
+    "architecture": "react",
+    "question_id": "Q2-agent-framework",
+    "round_num": 2,
+    "distinct_claims": 54,
+    "quality_weighted_claims": 27.0,
+    "avg_sources_per_claim": 0.0,
+    "single_source_ratio": 1.0,
+    "max_corroboration_depth": 0,
+    "unique_domains_cited": 0,
+    "fulltext_ratio": null,
+    "strong_corroboration_pct": 0.0,
+    "weak_corroboration_pct": 0.0,
+    "cross_perspective_pct": null,
+    "contradictions_acknowledged": false,
+    "coverage_score": 1.0,
+    "sections_present": [
+      "Architecture Design Philosophy",
+      "Applicable Scenarios",
+      "Limitations",
+      "Control Granularity and State Management",
+      "Human-in-the-Loop Capabilities",
+      "Framework Dependencies",
+      "Maturity and Community Adoption",
+      "Learning Curve and Developer Experience"
+    ],
+    "honesty_score": 5.0,
+    "hedge_word_count": 7,
+    "contradiction_presented": true,
+    "composite_score": 0.575,
+    "errors": []
+  },
+  "process": {
+    "architecture": "react",
+    "wall_time_seconds": 62.8,
+    "total_tokens": 15430,
+    "total_cost_usd": 0.014435,
+    "llm_call_count": 7,
+    "search_query_count": 1,
+    "pages_fetched": 4,
+    "iterations": 6,
+    "dead_searches": 0,
+    "error_count": 0,
+    "fulltext_ratio_na": true,
+    "dead_end_rate_na": true
+  },
+  "errors": []
+}

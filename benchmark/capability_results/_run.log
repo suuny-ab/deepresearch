@@ -1,0 +1,48 @@
+Capability Ceiling Evaluation
+  Questions:    3 (Q1-solid-state-battery, Q2-agent-framework, Q3-agent-challenges)
+  Architectures: ['pipeline', 'multi-agent', 'react']
+  Rounds:        3
+  Total runs:    27
+  Results dir:   C:\Users\23514\code\deepsearch\benchmark\capability_results
+
+[1/27] Q1-solid-state-battery × pipeline (round 1)... Failed to get info from https://api.smith.langchain.com: LangSmithConnectionError('Connection error caused failure to GET /info in LangSmith API. Please confirm your internet connection. ConnectionError(MaxRetryError("HTTPSConnectionPool(host=\'api.smith.langchain.com\', port=443): Max retries exceeded with url: /info (Caused by ProtocolError(\'Connection aborted.\', ConnectionResetError(10054, \'远程主机强迫关闭了一个现有的连接。\', None, 10054, None)))"))\nContent-Length: None\nAPI Key: lsv2_********************************************b2')
+Run compression is not enabled. Please update to the latest version of LangSmith. Falling back to regular multipart ingestion.
+Failed to get info from https://api.smith.langchain.com: LangSmithConnectionError('Connection error caused failure to GET /info in LangSmith API. Please confirm your internet connection. ConnectionError(MaxRetryError("HTTPSConnectionPool(host=\'api.smith.langchain.com\', port=443): Max retries exceeded with url: /info (Caused by ProtocolError(\'Connection aborted.\', ConnectionResetError(10054, \'远程主机强迫关闭了一个现有的连接。\', None, 10054, None)))"))\nContent-Length: None\nAPI Key: lsv2_********************************************b2')
+Failed to send compressed multipart ingest: Connection error caused failure to POST https://api.smith.langchain.com/runs/multipart in LangSmith API. Please confirm your internet connection. ConnectionError(MaxRetryError('HTTPSConnectionPool(host=\'api.smith.langchain.com\', port=443): Max retries exceeded with url: /runs/multipart (Caused by ReadTimeoutError("HTTPSConnectionPool(host=\'api.smith.langchain.com\', port=443): Read timed out. (read timeout=3)"))'))
+Content-Length: 152814
+API Key: lsv2_********************************************b2trace=019ecb75-6713-7751-9d38-0f949a9fcfcc,id=019ecb7a-9b6a-7943-aa8c-8b730824665b; trace=019ecb75-6713-7751-9d38-0f949a9fcfcc,id=019ecb7a-9b6a-7943-aa8c-8b730824665b; trace=019ecb75-6713-7751-9d38-0f949a9fcfcc,id=019ecb7a-3710-78b1-a218-da350d7d4dd9; trace=019ecb75-6713-7751-9d38-0f949a9fcfcc,id=019ecb7a-9b6f-7ce2-94c7-3a27fe369cfd
+Failed to send compressed multipart ingest: Connection error caused failure to POST https://api.smith.langchain.com/runs/multipart in LangSmith API. Please confirm your internet connection. ConnectionError(MaxRetryError('HTTPSConnectionPool(host=\'api.smith.langchain.com\', port=443): Max retries exceeded with url: /runs/multipart (Caused by ReadTimeoutError("HTTPSConnectionPool(host=\'api.smith.langchain.com\', port=443): Read timed out. (read timeout=3)"))'))
+Content-Length: 76166
+API Key: lsv2_********************************************b2trace=019ecb75-6713-7751-9d38-0f949a9fcfcc,id=019ecb7a-9b6f-7ce2-94c7-3a27fe369cfd; trace=019ecb75-6713-7751-9d38-0f949a9fcfcc,id=019ecb75-6713-7751-9d38-0f949a9fcfcc
+✓ (407s, 145427 tokens, composite=0.807) [elapsed: 566s]
+[2/27] Q1-solid-state-battery × multi-agent (round 1)... ✓ (279s, 158844 tokens, composite=0.717) [elapsed: 1000s]
+[3/27] Q1-solid-state-battery × react (round 1)... ✓ (104s, 37065 tokens, composite=0.736) [elapsed: 1265s]
+[4/27] Q2-agent-framework × pipeline (round 1)... ✓ (243s, 187761 tokens, composite=0.724) [elapsed: 1675s]
+[5/27] Q2-agent-framework × multi-agent (round 1)... ✓ (242s, 162997 tokens, composite=0.666) [elapsed: 2088s]
+[6/27] Q2-agent-framework × react (round 1)... ✓ (117s, 31314 tokens, composite=0.558) [elapsed: 2251s]
+[7/27] Q3-agent-challenges × pipeline (round 1)... ✓ (184s, 1515233 tokens, composite=0.736) [elapsed: 2576s]
+[8/27] Q3-agent-challenges × multi-agent (round 1)... ✓ (183s, 1572131 tokens, composite=0.631) [elapsed: 2854s]
+[9/27] Q3-agent-challenges × react (round 1)... ✓ (94s, 28851 tokens, composite=0.687) [elapsed: 3034s]
+[10/27] Q1-solid-state-battery × pipeline (round 2)... ✓ (292s, 247206 tokens, composite=0.772) [elapsed: 3410s]
+[11/27] Q1-solid-state-battery × multi-agent (round 2)... ✓ (263s, 181828 tokens, composite=0.796) [elapsed: 3789s]
+[12/27] Q1-solid-state-battery × react (round 2)... ✓ (141s, 37891 tokens, composite=0.600) [elapsed: 4061s]
+[13/27] Q2-agent-framework × pipeline (round 2)... ✓ (302s, 33843 tokens, composite=0.763) [elapsed: 4472s]
+[14/27] Q2-agent-framework × multi-agent (round 2)... ✓ (295s, 197343 tokens, composite=0.534) [elapsed: 4950s]
+[15/27] Q2-agent-framework × react (round 2)... ✓ (63s, 15430 tokens, composite=0.575) [elapsed: 5147s]
+[16/27] Q3-agent-challenges × pipeline (round 2)... ✓ (261s, 1550918 tokens, composite=0.668) [elapsed: 5595s]
+[17/27] Q3-agent-challenges × multi-agent (round 2)... ✓ (160s, 109007 tokens, composite=0.456) [elapsed: 5824s]
+[18/27] Q3-agent-challenges × react (round 2)... ✓ (109s, 13795 tokens, composite=0.586) [elapsed: 6034s]
+[19/27] Q1-solid-state-battery × pipeline (round 3)... ✓ (0s, 0 tokens, composite=0.000) [elapsed: 6068s]
+[20/27] Q1-solid-state-battery × multi-agent (round 3)... ✓ (311s, 180111 tokens, composite=0.716) [elapsed: 6505s]
+[21/27] Q1-solid-state-battery × react (round 3)... ✓ (64s, 28867 tokens, composite=0.660) [elapsed: 6741s]
+[22/27] Q2-agent-framework × pipeline (round 3)... ✓ (296s, 188909 tokens, composite=0.714) [elapsed: 7204s]
+[23/27] Q2-agent-framework × multi-agent (round 3)... ✓ (243s, 198914 tokens, composite=0.728) [elapsed: 7520s]
+[24/27] Q2-agent-framework × react (round 3)... ✓ (90s, 23802 tokens, composite=0.575) [elapsed: 7696s]
+[25/27] Q3-agent-challenges × pipeline (round 3)... ✓ (415s, 1601418 tokens, composite=0.685) [elapsed: 8262s]
+[26/27] Q3-agent-challenges × multi-agent (round 3)... ✓ (249s, 164827 tokens, composite=0.535) [elapsed: 8656s]
+[27/27] Q3-agent-challenges × react (round 3)... ✓ (123s, 31678 tokens, composite=0.718) [elapsed: 8979s]
+
+Done. 27 runs in 8980s.
+Results saved to C:\Users\23514\code\deepsearch\benchmark\capability_results/
+
+To compare: uv run python benchmark/capability_compare.py C:\Users\23514\code\deepsearch\benchmark\capability_results/

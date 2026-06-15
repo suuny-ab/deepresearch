@@ -48,7 +48,7 @@ def test_cli_full_pipeline_with_fake_graph(monkeypatch, tmp_path):
         def invoke(self, initial_state):
             return fake_state
 
-    monkeypatch.setattr("deepresearch.cli._build_app", lambda config: FakeApp())
+    monkeypatch.setattr("deepresearch.cli._build_app", lambda config, architecture="pipeline": FakeApp())
     monkeypatch.setattr("deepresearch.cli.AppConfig.from_env", lambda: type(
         "FakeConfig", (),
         {
@@ -86,7 +86,7 @@ def test_cli_prints_failure_when_validation_fails(monkeypatch, tmp_path):
         def invoke(self, initial_state):
             return fake_state
 
-    monkeypatch.setattr("deepresearch.cli._build_app", lambda config: FakeApp())
+    monkeypatch.setattr("deepresearch.cli._build_app", lambda config, architecture="pipeline": FakeApp())
     monkeypatch.setattr("deepresearch.cli.AppConfig.from_env", lambda: type(
         "FakeConfig", (),
         {
