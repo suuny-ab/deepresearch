@@ -1,12 +1,25 @@
+import re
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from deepresearch.clients.tavily import SearchClient
 from deepresearch.errors import SearchError
 from deepresearch.state import ResearchState, SearchResult
 
+_CHINESE_CHAR = re.compile(r"[一-鿿]")
+
 
 def _queries_for(subquestion) -> list[str]:
     return subquestion.search_queries or [subquestion.search_query]
+
+
+def _is_chinese_topic(question: str) -> bool:
+    """Check if the research question is primarily in Chinese."""
+    return bool(_CHINESE_CHAR.search(question))
+
+
+def _skip_english_query(query: str) -> bool:
+    """Skip a query if it's English-only on a Chinese topic (reduces ~30% Tavily calls)."""
+    return not _CHINESE_CHAR.search(query)
 
 
 def make_search_web_node(search_client: SearchClient, results_per_query: int):
@@ -14,11 +27,16 @@ def make_search_web_node(search_client: SearchClient, results_per_query: int):
         errors = list(state.get("errors", []))
         results: list[SearchResult] = []
         subquestions = state.get("subquestions", [])
+        question = state.get("question", "")
+        chinese_topic = _is_chinese_topic(question)
 
         # Build flat list of (sq_id, query) tasks
         tasks = []
         for subquestion in subquestions:
             for query in _queries_for(subquestion):
+                # Skip English-only queries on Chinese topics to save Tavily quota
+                if chinese_topic and _skip_english_query(query):
+                    continue
                 tasks.append((subquestion.id, query))
 
         if not tasks:

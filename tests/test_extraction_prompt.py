@@ -51,7 +51,7 @@ def test_extraction_prompt_has_quantity_guideline():
 
     prompt = build_extraction_prompt("AI search", sources, subquestions)
 
-    assert "at least 2-4 claims per source" in prompt
+    assert "at least 5 distinct claims from each source" in prompt
 
 
 def test_extraction_prompt_groups_sources_by_subquestion():

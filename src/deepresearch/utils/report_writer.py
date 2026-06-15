@@ -31,7 +31,7 @@ def append_quality_review(report_markdown: str, review: ReviewResult) -> str:
 def save_report(
     question: str,
     report_markdown: str,
-    review: ReviewResult,
+    review: ReviewResult | None,
     output_dir: str | Path,
     now: datetime | None = None,
     *,
@@ -41,7 +41,8 @@ def save_report(
     try:
         directory.mkdir(parents=True, exist_ok=True)
         path = directory / make_report_filename(question, now, failed=failed)
-        path.write_text(append_quality_review(report_markdown, review), encoding="utf-8")
+        content = append_quality_review(report_markdown, review) if review is not None else report_markdown
+        path.write_text(content, encoding="utf-8")
     except OSError as exc:
         raise ReportWriteError(f"Failed to write report: {exc}") from exc
     return path

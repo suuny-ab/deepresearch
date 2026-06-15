@@ -54,7 +54,7 @@ def _build_app(config: AppConfig, architecture: str = "pipeline"):
 @app.command()
 def main(
     question: str = typer.Argument(..., help="Research question"),
-    max_subquestions: int = typer.Option(5, "--max-subquestions", help="Maximum generated subquestions"),
+    max_subquestions: int = typer.Option(3, "--max-subquestions", help="Maximum generated subquestions"),
     results_per_query: int = typer.Option(5, "--results-per-query", help="Tavily results per query"),
     output_dir: str = typer.Option("reports", "--output-dir", help="Report output directory"),
     model: str = typer.Option("deepseek-v4-pro", "--model", help="DeepSeek model"),

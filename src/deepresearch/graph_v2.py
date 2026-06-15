@@ -12,7 +12,6 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import Literal
 
 from langgraph.graph import END, START, StateGraph
 
@@ -30,15 +29,6 @@ from deepresearch.clients.tavily import SearchClient
 from deepresearch.state import ResearchState, TokenUsage
 
 Node = Callable[[ResearchState], ResearchState]
-
-
-def _review_router(state: ResearchState) -> Literal["write_report", "save_report"]:
-    """Route after review: rewrite if feedback present, otherwise save."""
-    if state.get("report_status") == "failed_validation":
-        return "save_report"
-    if state.get("review_feedback"):
-        return "write_report"
-    return "save_report"
 
 
 def _format_contradictions_for_writer(contradictions: list[Contradiction]) -> str:
@@ -157,14 +147,9 @@ def build_multi_agent_graph(
     run_agents: Node,
     coordinator: Node,
     write_report: Node,
-    review_report: Node,
     save_report: Node,
 ):
-    """Build the multi-agent StateGraph.
-
-    Unlike the single-pipeline graph, this graph fans out subquestion
-    processing to independent parallel agents before coordinating.
-    """
+    """Build the multi-agent StateGraph (review node removed)."""
     _ = search_web  # explicitly unused in multi-agent mode
 
     graph = StateGraph(ResearchState)
@@ -172,19 +157,13 @@ def build_multi_agent_graph(
     graph.add_node("run_agents", run_agents)
     graph.add_node("coordinator", coordinator)
     graph.add_node("write_report", write_report)
-    graph.add_node("review_report", review_report)
     graph.add_node("save_report", save_report)
 
     graph.add_edge(START, "plan_research")
     graph.add_edge("plan_research", "run_agents")
     graph.add_edge("run_agents", "coordinator")
     graph.add_edge("coordinator", "write_report")
-    graph.add_edge("write_report", "review_report")
-    graph.add_conditional_edges(
-        "review_report",
-        _review_router,
-        {"write_report": "write_report", "save_report": "save_report"},
-    )
+    graph.add_edge("write_report", "save_report")
     graph.add_edge("save_report", END)
 
     return graph.compile()

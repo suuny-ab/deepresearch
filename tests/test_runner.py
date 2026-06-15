@@ -46,7 +46,7 @@ class FakeSearchClient:
 # LLM response sequence for a full pipeline run (1 subquestion)
 # ---------------------------------------------------------------------------
 # plan_research → Phase 1 extraction → Phase 2 validation (1 subquestion)
-# → write_report → review_report
+# → write_report → save_report
 # = 5 LLM calls
 _MOCK_RESPONSES_FULL_RUN = [
     # plan_research
@@ -57,8 +57,6 @@ _MOCK_RESPONSES_FULL_RUN = [
     '{"evidence_cards":[{"id":"e1","subquestion_id":"q1","claim":"AI search engines use RAG to improve relevance.","source_url":"https://example.com/q1","source_title":"Test Source","supporting_snippet":"AI search engines use RAG and generated answers to improve relevance.","content_type":"extracted_content","corroboration_level":"single_source","corroborating_sources":[],"confidence":"high"}]}',
     # write_report
     '# AI Search Trends\n\nAI search engines use RAG to improve relevance.[1]\n\n## Sources\n\n[1] https://example.com/q1',
-    # review_report
-    '{"passed":true,"score":88,"issues":[],"suggestions":[]}',
 ]
 
 
@@ -106,7 +104,6 @@ def test_build_agent_invokes_all_nodes_and_produces_expected_fields(tmp_path):
     assert result["report_markdown"]
     assert result["report_status"] == "success"
     assert result["output_path"]
-    assert result["review"].score == 88
 
 
 def test_build_agent_preserves_errors_list():
@@ -172,8 +169,6 @@ _MOCK_MULTI_AGENT_RESPONSES = [
     '{"evidence_cards":[{"id":"e1","subquestion_id":"q1","claim":"RAG improves search accuracy.","source_url":"https://example.com/q1","source_title":"Test Source","supporting_snippet":"AI search engines use RAG.","content_type":"extracted_content","corroboration_level":"single_source","corroborating_sources":[],"confidence":"high"}]}',
     # write_report
     '# AI Search Report\n\nRAG improves search accuracy.[1]\n\n## Sources\n\n[1] https://example.com/q1',
-    # review_report
-    '{"passed":true,"score":85,"issues":[],"suggestions":[]}',
 ]
 
 
@@ -200,7 +195,6 @@ def test_build_agent_multi_agent_architecture(tmp_path):
     assert len(result["evidence_cards"]) == 1
     assert result["report_markdown"]
     assert result["report_status"] == "success"
-    assert result["review"].score == 85
 
 
 def test_multi_agent_produces_coordinator_state(tmp_path):

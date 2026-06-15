@@ -218,9 +218,30 @@ def make_prepare_evidence_node(search_client, llm, max_sources_per_subquestion):
         deduped = _dedupe_results(raw_results)
         selected_by_sq = _select_by_subquestion(deduped, max_sources_per_subquestion)
 
+        # Frozen replay check: if search_results already have raw_content
+        # (pre-extracted), skip Tavily extract.
+        pre_extracted = any(
+            getattr(r, "raw_content", None) for r in raw_results
+        ) if raw_results else False
+
         extracted_sources = []
         extracted_content_types = {}
-        for sq_id, selected in selected_by_sq.items():
+
+        if pre_extracted:
+            extracted_sources = [
+                ExtractedSource(subquestion_id=r.subquestion_id, url=r.url,
+                                title=r.title, raw_content=r.raw_content or r.content)
+                for r in raw_results if r.url and (r.raw_content or r.content)
+            ]
+            extracted_content_types = {
+                normalize_url(r.url): "extracted_content"
+                for r in raw_results if r.url and r.raw_content
+            }
+
+        if not pre_extracted:
+            sq_items = list(selected_by_sq.items())
+        if len(sq_items) == 1:
+            sq_id, selected = sq_items[0]
             success, fallback = _extract_sources_for_subquestion(search_client, sq_id, selected, errors)
             for src in success:
                 extracted_content_types[normalize_url(src.url)] = "extracted_content"
@@ -230,6 +251,36 @@ def make_prepare_evidence_node(search_client, llm, max_sources_per_subquestion):
                 if key not in extracted_content_types:
                     extracted_content_types[key] = "search_content"
                     extracted_sources.append(src)
+        elif len(sq_items) > 1:
+            def _extract_one(sq_id, selected):
+                thread_errors: list[str] = []
+                local_sources = []
+                local_types = {}
+                success, fallback = _extract_sources_for_subquestion(search_client, sq_id, selected, thread_errors)
+                for src in success:
+                    local_types[normalize_url(src.url)] = "extracted_content"
+                    local_sources.append(src)
+                for src in fallback:
+                    key = normalize_url(src.url)
+                    if key not in local_types:
+                        local_types[key] = "search_content"
+                        local_sources.append(src)
+                return local_sources, local_types, thread_errors
+
+            with ThreadPoolExecutor(max_workers=len(sq_items)) as executor:
+                futures = {executor.submit(_extract_one, sq_id, selected): sq_id
+                          for sq_id, selected in sq_items}
+                for future in as_completed(futures):
+                    sq_id = futures[future]
+                    try:
+                        local_sources, local_types, thread_errors = future.result()
+                        extracted_sources.extend(local_sources)
+                        for k, v in local_types.items():
+                            if k not in extracted_content_types:
+                                extracted_content_types[k] = v
+                        errors.extend(thread_errors)
+                    except Exception as exc:
+                        errors.append(f"Extract failed for {sq_id}: {exc}")
 
         # Phase 1: Extract claims (1 LLM call)
         claims, p1_usage = _phase1_extract(llm, question, extracted_sources, subquestions, errors)

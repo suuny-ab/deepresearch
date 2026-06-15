@@ -5,12 +5,11 @@ from typing import Any, Literal
 from deepresearch.agents.react_agent import ReActAgent
 from deepresearch.clients.llm import LLMClient
 from deepresearch.clients.tavily import SearchClient
-from deepresearch.graph import Node, create_research_app
+from deepresearch.graph import Node, build_replay_graph, create_research_app
 from deepresearch.graph_v2 import build_multi_agent_graph, make_coordinator_node, make_run_agents_node
 from deepresearch.tools import TavilySearchTool, ToolRegistry, WebFetchTool
 from deepresearch.nodes.planning import make_plan_research_node
 from deepresearch.nodes.prepare_evidence import make_prepare_evidence_node
-from deepresearch.nodes.reviewing import make_review_report_node
 from deepresearch.nodes.saving import make_save_report_node
 from deepresearch.nodes.searching import make_search_web_node
 from deepresearch.nodes.writing import make_write_report_node
@@ -23,12 +22,13 @@ def build_agent(
     *,
     llm: LLMClient,
     search: SearchClient,
-    max_subquestions: int = 5,
+    max_subquestions: int = 3,
     results_per_query: int = 5,
     max_sources_per_subquestion: int = 3,
     output_dir: str | Path = "reports",
     wrap_node: NodeWrapper | None = None,
     architecture: Literal["pipeline", "multi-agent", "react"] = "pipeline",
+    replay_search_results: list | None = None,
 ) -> Callable[[str], ResearchState]:
     """Build a research agent with injected dependencies.
 
@@ -47,9 +47,8 @@ def build_agent(
     plan_research = _wrap("[1/6] Planning research...", make_plan_research_node(llm, max_subquestions))
     search_web = _wrap("[2/6] Searching web...", make_search_web_node(search, results_per_query))
     prepare_evidence = _wrap("[3/6] Preparing evidence...", make_prepare_evidence_node(search, llm, max_sources_per_subquestion=max_sources_per_subquestion))
-    write_report = _wrap("[4/6] Writing report...", make_write_report_node(llm))
-    review_report = _wrap("[5/6] Reviewing report...", make_review_report_node(llm))
-    save_report = _wrap("[6/6] Saving report...", make_save_report_node(output_dir))
+    write_report = _wrap("[4/5] Writing report...", make_write_report_node(llm))
+    save_report = _wrap("[5/5] Saving report...", make_save_report_node(output_dir))
 
     if architecture == "react":
         tools = ToolRegistry([
@@ -91,6 +90,27 @@ def build_agent(
 
         return run
 
+    if replay_search_results is not None:
+        # Frozen replay: skip plan+search, start from prepare_evidence.
+        # The frozen data (subquestions + search_results) is injected via initial state.
+        app = build_replay_graph(
+            prepare_evidence=prepare_evidence,
+            write_report=write_report,
+            save_report=save_report,
+        )
+        frozen_subquestions = replay_search_results.get("subquestions", [])
+        frozen_search = replay_search_results.get("search_results", [])
+
+        def run(question: str) -> ResearchState:
+            return app.invoke({
+                "question": question,
+                "errors": [],
+                "subquestions": frozen_subquestions,
+                "search_results": frozen_search,
+            })
+
+        return run
+
     if architecture == "multi-agent":
         run_agents = _wrap("[2+3/6] Running subquestion agents...", make_run_agents_node(
             search_client=search, llm=llm,
@@ -105,7 +125,6 @@ def build_agent(
             run_agents=run_agents,
             coordinator=coordinator,
             write_report=write_report,
-            review_report=review_report,
             save_report=save_report,
         )
     else:
@@ -114,11 +133,23 @@ def build_agent(
             search_web=search_web,
             prepare_evidence=prepare_evidence,
             write_report=write_report,
-            review_report=review_report,
             save_report=save_report,
         )
 
     def run(question: str) -> ResearchState:
+        if replay_search_results is not None:
+            # Frozen replay: skip plan + search, inject pre-collected results.
+            # Requires replay_search_results to contain subquestions + search_results.
+            # The graph still runs plan → search but they're no-ops because
+            # we inject the frozen data directly. For pipeline mode, we must
+            # keep the edge structure; we just pre-populate the state.
+            initial = {
+                "question": question,
+                "errors": [],
+                "subquestions": replay_search_results.get("subquestions", []),
+                "search_results": replay_search_results.get("search_results", []),
+            }
+            return app.invoke(initial)
         return app.invoke({"question": question, "errors": []})
 
     return run

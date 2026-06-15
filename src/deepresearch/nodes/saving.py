@@ -51,7 +51,7 @@ def make_save_report_node(output_dir: str | Path):
         path = save_report(
             question=state["question"],
             report_markdown=state.get("report_markdown", ""),
-            review=state["review"],
+            review=state.get("review"),
             output_dir=output_dir,
             failed=failed,
         )
