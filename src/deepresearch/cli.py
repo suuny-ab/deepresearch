@@ -6,13 +6,7 @@ from deepresearch.clients.llm import DeepSeekLLMClient
 from deepresearch.clients.tavily import TavilySearchClient
 from deepresearch.config import AppConfig
 from deepresearch.errors import ConfigError, DeepResearchError
-from deepresearch.graph import create_research_app
-from deepresearch.nodes.planning import make_plan_research_node
-from deepresearch.nodes.prepare_evidence import make_prepare_evidence_node
-from deepresearch.nodes.reviewing import make_review_report_node
-from deepresearch.nodes.saving import make_save_report_node
-from deepresearch.nodes.searching import make_search_web_node
-from deepresearch.nodes.writing import make_write_report_node
+from deepresearch.runner import build_agent
 
 app = typer.Typer(no_args_is_help=True)
 console = Console()
@@ -23,6 +17,7 @@ def _build_app(config: AppConfig):
         raise ConfigError("DEEPSEEK_API_KEY is not set")
     if config.tavily_api_key is None:
         raise ConfigError("TAVILY_API_KEY is not set")
+
     llm = DeepSeekLLMClient(
         api_key=config.deepseek_api_key,
         base_url=config.deepseek_base_url,
@@ -30,26 +25,20 @@ def _build_app(config: AppConfig):
     )
     search = TavilySearchClient(api_key=config.tavily_api_key)
 
-    plan_research = make_plan_research_node(llm, config.max_subquestions)
-    search_web = make_search_web_node(search, config.results_per_query)
-    prepare_evidence = make_prepare_evidence_node(search, llm, max_sources_per_subquestion=3)
-    write_report = make_write_report_node(llm)
-    review_report = make_review_report_node(llm)
-    save_report = make_save_report_node(config.output_dir)
-
-    def _with_progress(label, node):
+    def _with_progress(label: str, node):
         def wrapped(state):
             console.print(label)
             return node(state)
+
         return wrapped
 
-    return create_research_app(
-        plan_research=_with_progress("[1/6] Planning research...", plan_research),
-        search_web=_with_progress("[2/6] Searching web...", search_web),
-        prepare_evidence=_with_progress("[3/6] Preparing evidence...", prepare_evidence),
-        write_report=_with_progress("[4/6] Writing report...", write_report),
-        review_report=_with_progress("[5/6] Reviewing report...", review_report),
-        save_report=_with_progress("[6/6] Saving report...", save_report),
+    return build_agent(
+        llm=llm,
+        search=search,
+        max_subquestions=config.max_subquestions,
+        results_per_query=config.results_per_query,
+        output_dir=config.output_dir,
+        wrap_node=_with_progress,
     )
 
 

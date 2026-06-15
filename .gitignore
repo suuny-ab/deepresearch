@@ -8,3 +8,4 @@ reports/*.md
 result.json
 .superpowers/
 findings.json
+benchmark/results/

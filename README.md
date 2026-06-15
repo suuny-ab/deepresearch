@@ -10,15 +10,13 @@ plan_research → search_web → prepare_evidence → write_report → review_re
 
 ## Evidence pipeline
 
-v0.3 uses a cross-validation evidence pipeline:
+Cross-validation evidence pipeline:
 
 ```text
-search → relevance + diversity selection → extract → EvidenceCard with cross-validation → notes → report
+search → relevance + diversity selection → extract → EvidenceCard with cross-validation → report
 ```
 
 Search results are treated as candidate sources. Sources are selected by Tavily relevance score with domain diversity constraints (no same-domain duplicates per subquestion). EvidenceCards include corroboration_level (single_source / weakly_corroborated / strongly_corroborated) based on how many independent-domain sources support each claim.
-
-Verbose mode reports search coverage and evidence corroboration distribution.
 
 ## Setup
 
@@ -102,13 +100,16 @@ uv run deepresearch "AI 搜索引擎的发展趋势"
 
 A successful smoke test should:
 
-- Show seven progress stages, including Preparing evidence
+- Show six progress stages (Planning research through Saving report)
 - Call DeepSeek
 - Call Tavily
 - Print a Markdown report
 - Save the report under `reports/`
 
 ## Output
+
+Reports are saved as timestamped Markdown files under `reports/`.
+Each saved report includes a `Quality Review` section.
 
 ## Validation failures
 
@@ -119,6 +120,3 @@ Example failure path:
 ```text
 reports/2026-06-11-092627-ai-failed.md
 ```
-
-Reports are saved as timestamped Markdown files under `reports/`.
-Each saved report includes a `Quality Review` section.

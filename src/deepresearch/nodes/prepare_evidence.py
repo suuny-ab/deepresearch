@@ -1,22 +1,51 @@
+import json
 from collections import defaultdict
 
-from pydantic import BaseModel
+from typing import Any
+from pydantic import BaseModel, model_validator
 
 from deepresearch.prompts.evidence import build_validation_prompt
 from deepresearch.prompts.extraction import build_extraction_prompt
 from deepresearch.state import (
     EvidenceCard, ExtractedClaim, ExtractedSource, ResearchState, SearchResult,
 )
-from deepresearch.utils.json import JSONParseError, parse_json_object
+from deepresearch.utils.json import JSONParseError, _extract_json_text, parse_json_object
 from deepresearch.utils.urls import extract_domain, normalize_url
+
+
+def _filter_valid_items(items: list[dict], model_cls: type) -> list[dict]:
+    """Return only items that pass *model_cls.model_validate()*."""
+    return [item for item in items if _is_valid(item, model_cls)]
+
+
+def _is_valid(data: dict, model_cls: type) -> bool:
+    try:
+        model_cls.model_validate(data)
+        return True
+    except Exception:
+        return False
 
 
 class ClaimsResponse(BaseModel):
     claims: list[ExtractedClaim]
 
+    @model_validator(mode="before")
+    @classmethod
+    def skip_invalid_claims(cls, data: Any) -> Any:
+        if isinstance(data, dict) and "claims" in data:
+            data["claims"] = _filter_valid_items(data["claims"], ExtractedClaim)
+        return data
+
 
 class EvidenceResponse(BaseModel):
     evidence_cards: list[EvidenceCard]
+
+    @model_validator(mode="before")
+    @classmethod
+    def skip_invalid_cards(cls, data: Any) -> Any:
+        if isinstance(data, dict) and "evidence_cards" in data:
+            data["evidence_cards"] = _filter_valid_items(data["evidence_cards"], EvidenceCard)
+        return data
 
 
 def _dedupe_results(results: list[SearchResult]) -> list[SearchResult]:
@@ -117,8 +146,18 @@ def _phase1_extract(llm, question, sources, subquestions, errors):
         errors.append(f"LLM call failed in phase1_extract: {exc}")
         return []
     try:
-        return parse_json_object(text, ClaimsResponse).claims
-    except JSONParseError as exc:
+        raw = _extract_json_text(text)
+        raw_claims = json.loads(raw).get("claims", [])
+        raw_count = len(raw_claims) if isinstance(raw_claims, list) else 0
+        parsed = parse_json_object(text, ClaimsResponse)
+        valid_count = len(parsed.claims)
+        if valid_count < raw_count:
+            errors.append(
+                f"Phase 1 extraction: {raw_count - valid_count}/{raw_count} claims "
+                f"dropped due to validation errors (e.g. missing or misspelled fields)"
+            )
+        return parsed.claims
+    except (JSONParseError, json.JSONDecodeError) as exc:
         errors.append(f"Phase 1 extraction failed: {exc}")
         return []
 
@@ -142,8 +181,18 @@ def _phase2_validate(llm, sq_id, sq_question, claims, sources, errors):
             ) for c in claims
         ]
     try:
-        return list(parse_json_object(text, EvidenceResponse).evidence_cards)
-    except JSONParseError as exc:
+        raw = _extract_json_text(text)
+        raw_cards = json.loads(raw).get("evidence_cards", [])
+        raw_count = len(raw_cards) if isinstance(raw_cards, list) else 0
+        parsed = parse_json_object(text, EvidenceResponse)
+        valid_count = len(parsed.evidence_cards)
+        if valid_count < raw_count:
+            errors.append(
+                f"Phase 2 validation [{sq_id}]: {raw_count - valid_count}/{raw_count} cards "
+                f"dropped due to validation errors"
+            )
+        return list(parsed.evidence_cards)
+    except (JSONParseError, json.JSONDecodeError) as exc:
         errors.append(f"Phase 2 validation failed for {sq_id}: {exc}")
         return [
             EvidenceCard(

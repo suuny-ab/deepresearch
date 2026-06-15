@@ -1,0 +1,20 @@
+[
+  {
+    "id": "ai-search-trends",
+    "question": "AI 搜索引擎的发展趋势和核心技术突破",
+    "tags": ["tech", "ai"],
+    "difficulty": "easy"
+  },
+  {
+    "id": "solid-state-battery",
+    "question": "固态电池的商业化进展与主要技术挑战",
+    "tags": ["tech", "energy"],
+    "difficulty": "medium"
+  },
+  {
+    "id": "langgraph-vs-crewai",
+    "question": "LangGraph 与 CrewAI 在 AI Agent 开发中的技术选型对比",
+    "tags": ["tech", "ai"],
+    "difficulty": "hard"
+  }
+]
