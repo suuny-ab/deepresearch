@@ -20,6 +20,7 @@ from typing import Any
 
 from deepresearch.agents.coordinator import coordinate
 from deepresearch.agents.subquestion_agent import AgentResult
+from deepresearch.citations import validate_citations
 from deepresearch.clients.llm import LLMClient
 from deepresearch.prompts.writing import build_writing_prompt
 from deepresearch.state import (
@@ -260,6 +261,9 @@ class ReActAgent:
             action = action_data.get("action", "stop")
             tool_name = action_data.get("tool", "")
             action_input = action_data.get("input", {})
+            # Guard: LLM sometimes returns input as a string instead of a dict
+            if isinstance(action_input, str):
+                action_input = {"query": action_input} if action == "search" else {"url": action_input}
 
             step = ReActStep(
                 iteration=iteration,
@@ -351,37 +355,184 @@ class ReActAgent:
         errors: list[str],
         usage: list[TokenUsage],
     ) -> str:
-        """Generate the final report from collected findings."""
-        # Build a simple prompt that asks the LLM to synthesize findings
-        prompt = f"""Based on the following research findings, write a comprehensive Markdown report.
+        """Generate the final report via Option C: findings → evidence_cards → write → validate.
 
-## Research Question
-{question}
-
-## Collected Research Findings
-{findings[:6000]}
-
-## Collected Source URLs
-{chr(10).join(f'- {url}' for url in urls[:20])}
-
-## Instructions
-- Write in Chinese unless the question uses another language
-- Structure the report with: Summary, Key Findings, Detailed Analysis, Uncertainties, Conclusion, Sources
-- Use numbered citations [1], [2], etc. for every factual claim
-- The Sources section must map [N] to URLs from the collected URLs above
-- If findings are insufficient for certain aspects, honestly state the limitations
-
-Return ONLY the Markdown report, no JSON wrapper."""
-
-        try:
-            text, llm_usage = self._llm.complete(prompt)
+        Uses the same build_writing_prompt() + validate_citations() + rewrite
+        pipeline as Pipeline/Multi-Agent, ensuring citation format consistency.
+        """
+        # Step 1: Convert findings to evidence_cards (Option C — 1 LLM call)
+        cards, cards_usage = self._findings_to_evidence_cards(findings, urls, errors)
+        if cards_usage.prompt_tokens > 0:
             usage.append(TokenUsage(
                 node="react_agent",
-                prompt_tokens=llm_usage.prompt_tokens,
-                completion_tokens=llm_usage.completion_tokens,
-                estimated_cost=llm_usage.estimated_cost,
+                prompt_tokens=cards_usage.prompt_tokens,
+                completion_tokens=cards_usage.completion_tokens,
+                estimated_cost=cards_usage.estimated_cost,
             ))
-            return text
+
+        allowed_urls = set(urls)
+        # Add URLs from evidence cards
+        for card in cards:
+            allowed_urls.add(card.source_url)
+            for cs in card.corroborating_sources:
+                allowed_urls.add(cs)
+
+        # Step 2: Build the writing prompt using the standard pipeline function
+        from deepresearch.state import SubQuestion
+        # Build a synthetic subquestion for the prompt builder
+        synth_sq = SubQuestion(
+            id="react", question=question, search_query=question,
+            search_queries=[question], rationale="ReAct autonomous research",
+        )
+
+        prompt = build_writing_prompt(
+            question=question,
+            subquestions=[synth_sq],
+            results=[],  # Empty — evidence_cards provide the source context
+            evidence_cards=cards,
+            allowed_source_urls=allowed_urls,
+            review_feedback=None,
+        )
+
+        # Step 3: Write the report
+        try:
+            report_text, w_usage = self._llm.complete(prompt)
+            usage.append(TokenUsage(
+                node="react_agent",
+                prompt_tokens=w_usage.prompt_tokens,
+                completion_tokens=w_usage.completion_tokens,
+                estimated_cost=w_usage.estimated_cost,
+            ))
         except Exception as exc:
             errors.append(f"Report generation failed: {exc}")
             return f"# {question}\n\nReport generation failed: {exc}\n\n## Raw Findings\n\n{findings[:2000]}"
+
+        # Step 4: Validate citations
+        validation = validate_citations(report_text, allowed_urls)
+        if validation.passed:
+            return report_text
+
+        # Step 5: One rewrite on citation failure
+        errors.append(
+            f"React report citation validation failed: {validation.reason}: {validation.message}"
+        )
+        rewrite_prompt = build_writing_prompt(
+            question=question,
+            subquestions=[synth_sq],
+            results=[],
+            evidence_cards=cards,
+            allowed_source_urls=allowed_urls,
+            review_feedback=(
+                f"Previous version failed citation validation. "
+                f"Reason: {validation.reason}. {validation.message}. "
+                f"Ensure every [N] citation in the body maps to a URL in ## Sources, "
+                f"and every URL in ## Sources comes from the allowed list."
+            ),
+        )
+        try:
+            rewritten, rw_usage = self._llm.complete(rewrite_prompt)
+            usage.append(TokenUsage(
+                node="react_agent",
+                prompt_tokens=rw_usage.prompt_tokens,
+                completion_tokens=rw_usage.completion_tokens,
+                estimated_cost=rw_usage.estimated_cost,
+            ))
+            second = validate_citations(rewritten, allowed_urls)
+            if second.passed:
+                return rewritten
+            errors.append(
+                f"React report rewrite also failed validation: {second.reason}: {second.message}"
+            )
+            return rewritten  # Return the rewrite even if it still fails
+        except Exception as exc:
+            errors.append(f"React report rewrite failed: {exc}")
+            return report_text  # Fall back to original
+
+    def _findings_to_evidence_cards(
+        self,
+        findings: str,
+        urls: list[str],
+        errors: list[str],
+    ) -> tuple[list, TokenUsage]:
+        """Option C: Convert search findings into evidence_cards (1 LLM call).
+
+        Takes the raw findings_buffer (search snippets + fetched content)
+        and produces structured evidence_cards with corroboration_level
+        estimated from finding overlap and domain diversity.
+        """
+        from deepresearch.state import EvidenceCard, UsageInfo
+
+        url_list = "\n".join(f"- {url}" for url in urls[:30])
+        prompt = f"""You are converting research findings into structured evidence cards.
+
+## Collected URLs
+{url_list}
+
+## Research Findings (search snippets and fetched content)
+{findings[:8000]}
+
+## Task
+For each distinct factual finding, create an evidence card.
+Estimate corroboration level based on whether multiple independent sources (different domains) report the same fact:
+- "strongly_corroborated": ≥2 other sources from different domains independently report this
+- "weakly_corroborated": 1 other source from a different domain reports this
+- "single_source": only one source mentions this
+
+Be conservative — only mark as corroborated when the same specific fact appears in multiple sources.
+
+Return ONLY this JSON (no markdown, no explanation):
+{{"evidence_cards": [
+  {{"id": "c1", "subquestion_id": "react", "claim": "factual claim text",
+    "source_url": "https://...", "source_title": "Source Title",
+    "supporting_snippet": "relevant excerpt from findings",
+    "content_type": "search_content",
+    "corroboration_level": "single_source|weakly_corroborated|strongly_corroborated",
+    "corroborating_sources": ["https://other-source"], "confidence": "high|medium|low"
+  }}
+]}}"""
+
+        try:
+            text, usage = self._llm.complete(prompt)
+        except Exception as exc:
+            errors.append(f"Option C evidence card extraction failed: {exc}")
+            return [], UsageInfo()
+
+        # Parse JSON
+        import json, re
+        try:
+            data = None
+            text = text.strip()
+            if text.startswith("{"):
+                data = json.loads(text)
+            else:
+                m = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", text, re.DOTALL)
+                if m:
+                    data = json.loads(m.group(1))
+            if not data:
+                m = re.search(r"\{.*\}", text, re.DOTALL)
+                if m:
+                    data = json.loads(m.group(0))
+        except (json.JSONDecodeError, AttributeError):
+            errors.append("Option C: failed to parse evidence_cards JSON")
+            return [], usage
+
+        raw_cards = data.get("evidence_cards", []) if data else []
+        cards = []
+        for rc in raw_cards:
+            try:
+                cards.append(EvidenceCard(
+                    id=str(rc.get("id", "")),
+                    subquestion_id="react",
+                    claim=str(rc.get("claim", "")),
+                    source_url=str(rc.get("source_url", "")),
+                    source_title=str(rc.get("source_title", "")),
+                    supporting_snippet=str(rc.get("supporting_snippet", "")),
+                    content_type="search_content",
+                    corroboration_level=str(rc.get("corroboration_level", "single_source")),
+                    corroborating_sources=list(rc.get("corroborating_sources", [])),
+                    confidence=str(rc.get("confidence", "medium")),
+                ))
+            except Exception:
+                pass
+
+        return cards, usage

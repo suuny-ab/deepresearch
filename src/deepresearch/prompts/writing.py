@@ -68,6 +68,10 @@ When citing claims in the report body:
   stating it as uncontested fact
 - If different sources present conflicting views, present both sides
   rather than choosing one
+- If the provided evidence lacks sufficient information on certain aspects
+  of the question, explicitly state what is missing and why. Do not silently
+  skip undersupported topics — acknowledge the gap and explain what kind of
+  information would be needed to address it.
 
 Sources format:
 [1] https://example.com/source-a

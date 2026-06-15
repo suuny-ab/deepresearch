@@ -128,7 +128,7 @@ class PooledTavilyClient:
             except Exception as exc:
                 last_error = exc
                 is_quota = self._is_quota_error(exc)
-                self._pool.record_error(is_quota=is_quota)
+                self._pool.record_error(is_quota_error=is_quota)
                 if is_quota:
                     continue  # Rotate and retry
                 raise  # Non-quota error — don't retry
@@ -148,7 +148,7 @@ class PooledTavilyClient:
             except Exception as exc:
                 last_error = exc
                 is_quota = self._is_quota_error(exc)
-                self._pool.record_error(is_quota=is_quota)
+                self._pool.record_error(is_quota_error=is_quota)
                 if is_quota:
                     continue
                 raise

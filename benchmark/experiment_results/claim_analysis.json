@@ -1,0 +1,89 @@
+{
+  "pipeline_stability": [
+    {
+      "round": 1,
+      "claims": 82,
+      "qw_claims": 55.75,
+      "strong_pct": 0.08536585365853659,
+      "weak_pct": 0.5487804878048781,
+      "single_ratio": 0.36585365853658536,
+      "unique_domains": 3,
+      "errors": []
+    },
+    {
+      "round": 2,
+      "claims": 67,
+      "qw_claims": 41.25,
+      "strong_pct": 0.04477611940298507,
+      "weak_pct": 0.373134328358209,
+      "single_ratio": 0.582089552238806,
+      "unique_domains": 3,
+      "errors": []
+    },
+    {
+      "round": 3,
+      "claims": 36,
+      "qw_claims": 23.0,
+      "strong_pct": 0.0,
+      "weak_pct": 0.5555555555555556,
+      "single_ratio": 0.4444444444444444,
+      "unique_domains": 2,
+      "errors": []
+    },
+    {
+      "round": 4,
+      "claims": 47,
+      "qw_claims": 30.25,
+      "strong_pct": 0.1702127659574468,
+      "weak_pct": 0.23404255319148937,
+      "single_ratio": 0.5957446808510638,
+      "unique_domains": 5,
+      "errors": []
+    },
+    {
+      "round": 5,
+      "claims": 36,
+      "qw_claims": 25.75,
+      "strong_pct": 0.3055555555555556,
+      "weak_pct": 0.25,
+      "single_ratio": 0.4444444444444444,
+      "unique_domains": 3,
+      "errors": []
+    }
+  ],
+  "react_option_c": [
+    {
+      "qid": "Q1-solid-state-battery",
+      "claims": 88,
+      "qw_claims": 52.25,
+      "strong_pct": 0.125,
+      "weak_pct": 0.125,
+      "single_ratio": 0.75,
+      "cited_urls": 5,
+      "domains": 3,
+      "errors": []
+    },
+    {
+      "qid": "Q2-agent-framework",
+      "claims": 38,
+      "qw_claims": 21.5,
+      "strong_pct": 0.0,
+      "weak_pct": 0.2631578947368421,
+      "single_ratio": 0.7368421052631579,
+      "cited_urls": 5,
+      "domains": 2,
+      "errors": []
+    },
+    {
+      "qid": "Q3-agent-challenges",
+      "claims": 48,
+      "qw_claims": 24.0,
+      "strong_pct": 0.0,
+      "weak_pct": 0.0,
+      "single_ratio": 1.0,
+      "cited_urls": 5,
+      "domains": 1,
+      "errors": []
+    }
+  ]
+}

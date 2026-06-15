@@ -46,13 +46,15 @@ class FakeFetchTool:
 
 
 def test_react_agent_completes_full_cycle():
-    """ReAct agent: search → fetch → write_report."""
-    # 3 LLM calls: decide to search, decide to fetch, decide to write
+    """ReAct agent: search → fetch → write_report (with Option C + citation validation)."""
+    # 5 LLM calls: search, fetch, write_report decision, Option C cards, write report
     llm = FakeLLMClient([
         '{"reasoning": "I need to search first.", "action": "search", "tool": "tavily_search", "input": {"query": "AI search trends"}}',
         '{"reasoning": "Good results, let me read one.", "action": "fetch", "tool": "web_fetch", "input": {"url": "https://example.com/a"}}',
         '{"reasoning": "I have enough information.", "action": "write_report"}',
-        # Report generation
+        # Option C: findings → evidence_cards
+        '{"evidence_cards": [{"id": "c1", "subquestion_id": "react", "claim": "AI search uses RAG.", "source_url": "https://example.com/a", "source_title": "Source A", "supporting_snippet": "AI uses RAG.", "content_type": "search_content", "corroboration_level": "single_source", "corroborating_sources": [], "confidence": "high"}]}',
+        # write_report via build_writing_prompt → citation-valid output
         '# AI Search Trends Report\n\nAI search is evolving.[1]\n\n## Sources\n\n[1] https://example.com/a',
     ])
 

@@ -530,15 +530,17 @@ def compute_capability_scores(
     # quality_weighted_claims normalized to [0,1] assuming max ~30 quality-weighted claims
     # domains normalized to [0,1] assuming max ~30 unique domains cited
     # corroboration: strong + weak ratio
-    # coverage: LLM judge score
-    # honesty: LLM judge score / 5
-    composite = (
-        0.25 * _normalize(quality_weighted, 0, 30) +
-        0.20 * _normalize(len(cited_domains), 0, 30) +
-        0.20 * (strong_pct + weak_pct) +
-        0.20 * coverage_score +
-        0.15 * (honesty_score / 5.0)
+    # Composite (Option A, regulator-approved 2026-06-16):
+    # 100% from declarative quality — no LLM judge, no citation structure.
+    # Four terms: quantity (dc), quality (qw), breadth (1-sr), depth (sp).
+    composite = compute_composite(
+        claims=claims,
+        cited_urls=len(citation_map),
+        unique_domains=len(cited_domains),
+        architecture=architecture,
     )
+    if composite is None:
+        composite = 0.0  # Gate failed or architecture excluded
 
     return CapabilityScores(
         architecture=architecture,
@@ -569,6 +571,63 @@ def _normalize(value: float, floor: float, ceiling: float) -> float:
     if ceiling <= floor:
         return 0.0
     return max(0.0, min(1.0, (value - floor) / (ceiling - floor)))
+
+
+def compute_composite(
+    claims: list,
+    cited_urls: int = 0,
+    unique_domains: int = 0,
+    architecture: str = "",
+) -> float | None:
+    """Compute the architecture-agnostic composite quality score.
+
+    Gate: cited_urls ≥ 1 AND unique_domains ≥ 1 (catches crashes + parse failures).
+    React excluded until evidence formatting aligns with Pipeline/Multi-Agent.
+
+    Formula (Option A, regulator-approved 2026-06-16):
+        composite = 0.30 × norm(distinct_claims, 0, 100)
+                  + 0.30 × norm(quality_weighted, 0, 65)
+                  + 0.25 × (1 - single_source_ratio)
+                  + 0.15 × strong_corroboration_pct
+
+    Four terms measure four distinct concepts:
+      dc   — quantity (how many claims extracted)
+      qw   — quality (claims weighted by corroboration)
+      (1-sr) — breadth (fraction with ≥1 corroborating source)
+      sp   — depth (fraction with ≥3 independent domains)
+
+    Returns None if gate fails or architecture is excluded.
+    """
+    if architecture == "react":
+        return None  # ⓘ Evidence formatting path not aligned
+
+    if cited_urls < 1 or unique_domains < 1:
+        return None  # Gate: crash or parse failure
+
+    if not claims:
+        return 0.0
+
+    n = len(claims)
+    dc = n
+    qw = sum(getattr(c, "corroboration_weight", 0.5) for c in claims)
+    single_and_unverifiable = sum(
+        1 for c in claims
+        if getattr(c, "corroboration_level", "single_source")
+        in ("single_source", "unverifiable")
+    )
+    sr = single_and_unverifiable / n
+    strong = sum(
+        1 for c in claims
+        if getattr(c, "corroboration_level", "") == "strongly_corroborated"
+    )
+    sp = strong / n
+
+    return (
+        0.30 * _normalize(dc, 0, 100)
+        + 0.30 * _normalize(qw, 0, 65)
+        + 0.25 * (1 - sr)
+        + 0.15 * sp
+    )
 
 
 # ---------------------------------------------------------------------------
