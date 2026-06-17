@@ -91,3 +91,33 @@ maxIterations 映射：不限制 → `0`
 > - **继续** — 进入下一轮拷问
 > - **停止** — 输出当前方案
 > - **补充指导** — 你在反馈中加入具体意见，Designer 据此修订后再拷问
+
+### 第四步：输出最终方案
+
+Workflow 返回结果后，执行以下操作：
+
+1. 从返回结果中提取 `markdown`（方案文本）和 `filename`（建议文件名）
+2. 将 `markdown` 内容写入文件，文件名使用返回的 `filename`
+3. 向用户展示：
+
+```
+✅ 方案已生成并保存到: {filename}
+
+📊 方案摘要:
+{plan.summary}
+
+你可以：
+- 查看完整方案：打开 {filename}
+- 继续拷问：告诉我你想针对哪个方面深入审查
+- 基于方案开发：告诉我你想开始实现
+```
+
+## 参数速查
+
+| 参数 | 说明 | 取值 |
+|------|------|------|
+| requirement | 需求描述 | 任意文本 |
+| mode | 停止模式 | `interactive`（默认）/ `auto` |
+| maxIterations | 最大轮数 | 0=不限制 / 3 / 5（默认）/ 8 / 10 |
+| hasExistingPlan | 是否打磨已有方案 | `true` / `false` |
+| existingPlan | 已有方案内容 | JSON 对象（hasExistingPlan=true 时必填） |
