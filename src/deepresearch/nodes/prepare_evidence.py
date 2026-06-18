@@ -6,7 +6,6 @@ from pydantic import BaseModel, model_validator
 
 from deepresearch.prompts.evidence import build_validation_prompt
 from deepresearch.prompts.evidence_1plus1 import build_1plus1_validation_prompt
-from deepresearch.prompts.evidence_merged import build_merged_evidence_prompt
 from deepresearch.prompts.extraction import build_extraction_prompt
 from deepresearch.state import (
     EvidenceCard, ExtractedClaim, ExtractedSource, ResearchState, SearchResult,
@@ -341,128 +340,6 @@ def make_prepare_evidence_node(search_client, llm, max_sources_per_subquestion):
         }
 
     return prepare_evidence
-
-
-def make_merged_evidence_node(search_client, llm, max_sources_per_subquestion):
-    """Create a node that extracts claims + cross-validates in ONE LLM call.
-
-    Replaces the 1+N Phase 1 + Phase 2 pipeline with a single call
-    using build_merged_evidence_prompt.  Source selection and post-validation
-    remain identical.
-    """
-
-    def merged_evidence(state):
-        errors = list(state.get("errors", []))
-        usage_entries: list[TokenUsage] = list(state.get("token_usage", []))
-        raw_results = list(state.get("search_results", []))
-        subquestions = state.get("subquestions", [])
-        question = state.get("question", "")
-
-        deduped = _dedupe_results(raw_results)
-        selected_by_sq = _select_by_subquestion(deduped, max_sources_per_subquestion)
-
-        # Source extraction (same as 1+N)
-        # Check for frozen replay
-        pre_extracted = any(
-            getattr(r, "raw_content", None) for r in raw_results
-        ) if raw_results else False
-
-        extracted_sources = []
-        extracted_content_types = {}
-
-        if pre_extracted:
-            extracted_sources = [
-                ExtractedSource(subquestion_id=r.subquestion_id, url=r.url,
-                                title=r.title, raw_content=r.raw_content or r.content)
-                for r in raw_results if r.url and (r.raw_content or r.content)
-            ]
-            extracted_content_types = {
-                normalize_url(r.url): "extracted_content"
-                for r in raw_results if r.url and r.raw_content
-            }
-
-        # (extract loop — omitted for brevity, same as 1+N path)
-        # For merged node, we always need extracted_sources. In frozen replay,
-        # pre_extracted handles it. For live runs, the extract loop runs.
-        if not pre_extracted:
-            # Live run: do Tavily extract (same logic as 1+N node)
-            extracted_sources = []
-            extracted_content_types = {}
-            for sq_id, selected in selected_by_sq.items():
-                success, fallback = _extract_sources_for_subquestion(search_client, sq_id, selected, errors)
-                for src in success:
-                    extracted_content_types[normalize_url(src.url)] = "extracted_content"
-                    extracted_sources.append(src)
-                for src in fallback:
-                    key = normalize_url(src.url)
-                    if key not in extracted_content_types:
-                        extracted_content_types[key] = "search_content"
-                        extracted_sources.append(src)
-
-        if not extracted_sources:
-            return {**state, "evidence_cards": [], "errors": errors}
-
-        # --- Merged Phase 1+2: one LLM call ---
-        prompt = build_merged_evidence_prompt(question, extracted_sources, subquestions)
-        try:
-            text, usage = llm.complete(prompt)
-        except Exception as exc:
-            errors.append(f"Merged evidence LLM call failed: {exc}")
-            return {**state, "evidence_cards": [], "errors": errors, "token_usage": usage_entries}
-
-        usage_entries.append(TokenUsage(
-            node="prepare_evidence",
-            prompt_tokens=usage.prompt_tokens,
-            completion_tokens=usage.completion_tokens,
-            estimated_cost=usage.estimated_cost,
-        ))
-
-        # Parse merged output
-        try:
-            raw = _extract_json_text(text)
-            raw_cards = json.loads(raw).get("evidence_cards", [])
-            all_cards = []
-            for rc in raw_cards:
-                try:
-                    # Handle corroborating_sources as objects [{url, snippet}] → list[str]
-                    corr_srcs = rc.get("corroborating_sources", [])
-                    if corr_srcs and isinstance(corr_srcs[0], dict):
-                        corr_urls = [cs.get("url", "") for cs in corr_srcs if cs.get("url")]
-                    else:
-                        corr_urls = [str(cs) for cs in corr_srcs]
-
-                    all_cards.append(EvidenceCard(
-                        id=str(rc.get("id", "")),
-                        subquestion_id=str(rc.get("subquestion_id", "")),
-                        claim=str(rc.get("claim", "")),
-                        source_url=str(rc.get("source_url", "")),
-                        source_title=str(rc.get("source_title", "")),
-                        supporting_snippet=str(rc.get("supporting_snippet", "")),
-                        content_type=str(rc.get("content_type", "search_content")),
-                        corroboration_level=str(rc.get("corroboration_level", "single_source")),
-                        corroborating_sources=corr_urls,
-                        confidence=str(rc.get("confidence", "medium")),
-                    ))
-                except Exception:
-                    pass
-        except (JSONParseError, json.JSONDecodeError) as exc:
-            errors.append(f"Merged evidence JSON parse failed: {exc}")
-            return {**state, "evidence_cards": [], "errors": errors, "token_usage": usage_entries}
-
-        # Post-validate (same as 1+N)
-        extracted_urls = {normalize_url(s.url) for s in extracted_sources}
-        all_cards = _drop_invalid_cards(all_cards, extracted_sources, errors)
-        all_cards = [_validate_corroboration(c, extracted_urls, extracted_content_types) for c in all_cards]
-
-        return {
-            **state,
-            "search_results": deduped,
-            "evidence_cards": all_cards,
-            "errors": errors,
-            "token_usage": usage_entries,
-        }
-
-    return merged_evidence
 
 
 def make_1plus1_evidence_node(search_client, llm, max_sources_per_subquestion):

@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import Any, Literal
 
 from deepresearch.agents.react_agent import ReActAgent
+from deepresearch.agents.react_workspace import ReActV2Agent
 from deepresearch.clients.llm import LLMClient
 from deepresearch.clients.tavily import SearchClient
 from deepresearch.graph import Node, build_replay_graph, create_research_app
@@ -27,7 +28,7 @@ def build_agent(
     max_sources_per_subquestion: int = 3,
     output_dir: str | Path = "reports",
     wrap_node: NodeWrapper | None = None,
-    architecture: Literal["pipeline", "multi-agent", "react"] = "pipeline",
+    architecture: Literal["pipeline", "multi-agent", "react", "workspace"] = "pipeline",
     replay_search_results: list | None = None,
 ) -> Callable[[str], ResearchState]:
     """Build a research agent with injected dependencies.
@@ -41,6 +42,8 @@ def build_agent(
         merged by a coordinator node before writing.
         ``"react"`` — autonomous ReAct agent with tool-calling loop that
         decides when to search, fetch, and write.
+        ``"workspace"`` — ReAct V3 agent with internal Workspace management:
+        self-directed topic tracking, question pool, and auto-saturation.
     """
     _wrap = wrap_node or (lambda _label, n: n)
 
@@ -85,6 +88,32 @@ def build_agent(
                 output_path=str(output_path),
                 token_usage=result.token_usage,
                 search_results=search_results,
+                _react_steps=result.steps,  # type: ignore[typeddict-item]
+            )  # type: ignore[return-value]
+
+        return run
+
+    if architecture == "workspace":
+        tools = ToolRegistry([
+            TavilySearchTool(search),
+            WebFetchTool(),
+        ])
+        ws_agent = ReActV2Agent(llm=llm, tools=tools, max_iterations=15)
+
+        def run(question: str) -> ResearchState:
+            from deepresearch.state import ResearchState as RS
+            from deepresearch.utils.filenames import make_report_filename
+            result = ws_agent.run(question)
+            output_path = Path(output_dir) / make_report_filename(question)
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+            output_path.write_text(result.report, encoding="utf-8")
+            return RS(
+                question=question,
+                report_markdown=result.report,
+                report_status="success" if result.report and "could not find" not in result.report[:100] else "failed_validation",
+                errors=result.errors,
+                output_path=str(output_path),
+                token_usage=result.token_usage,
                 _react_steps=result.steps,  # type: ignore[typeddict-item]
             )  # type: ignore[return-value]
 

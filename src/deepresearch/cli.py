@@ -39,7 +39,7 @@ def _build_app(config: AppConfig, architecture: str = "pipeline"):
 
         return wrapped
 
-    arch = architecture if architecture in ("pipeline", "multi-agent", "react") else "pipeline"
+    arch = architecture if architecture in ("pipeline", "multi-agent", "react", "workspace") else "pipeline"
     return build_agent(
         llm=llm,
         search=search,
@@ -58,7 +58,7 @@ def main(
     results_per_query: int = typer.Option(5, "--results-per-query", help="Tavily results per query"),
     output_dir: str = typer.Option("reports", "--output-dir", help="Report output directory"),
     model: str = typer.Option("deepseek-v4-pro", "--model", help="DeepSeek model"),
-    architecture: str = typer.Option("pipeline", "--architecture", help="Agent architecture: pipeline, multi-agent, or react"),
+    architecture: str = typer.Option("pipeline", "--architecture", help="Agent architecture: pipeline, multi-agent, react, or workspace"),
 ):
     try:
         config = AppConfig.from_env().with_overrides(
