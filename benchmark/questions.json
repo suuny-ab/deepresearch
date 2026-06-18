@@ -16,5 +16,35 @@
     "question": "LangGraph 与 CrewAI 在 AI Agent 开发中的技术选型对比",
     "tags": ["tech", "ai"],
     "difficulty": "hard"
+  },
+  {
+    "id": "embodied-ai",
+    "question": "请帮我整理下目前全球具身智能发展的技术路线，以及各个路线的代表性公司，需要包括这些公司的技术路径，产品进度，商业化进度，融资情况，团队情况",
+    "tags": ["tech", "ai", "deepresearch-bench"],
+    "difficulty": "hard"
+  },
+  {
+    "id": "lowcode-vs-traditional",
+    "question": "在当今软件开发行业中，低代码/无代码平台对传统开发流程的影响有多大？它们是否真正提高了开发效率，还是在特定场景下反而增加了维护成本？",
+    "tags": ["tech", "software", "deepresearch-bench"],
+    "difficulty": "hard"
+  },
+  {
+    "id": "ai-replace-software",
+    "question": "软件行业未来趋势和被AI替代的可能性",
+    "tags": ["tech", "ai", "deepresearch-bench"],
+    "difficulty": "hard"
+  },
+  {
+    "id": "ai-mental-health",
+    "question": "如何将AI心理咨询和人类心理咨询有机结合，以便为人类心理健康谋求福利？",
+    "tags": ["health", "ai", "deepresearch-bench"],
+    "difficulty": "hard"
+  },
+  {
+    "id": "travel-factors-2025",
+    "question": "2025年，有哪些因素影响着旅客选择前往不同目的地旅游",
+    "tags": ["society", "deepresearch-bench"],
+    "difficulty": "hard"
   }
 ]

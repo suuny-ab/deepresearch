@@ -25,21 +25,23 @@ def _build_app(config: AppConfig, architecture: str = "pipeline"):
         base_url=config.deepseek_base_url,
         model=config.deepseek_model,
     )
+
     if len(config.tavily_api_keys) > 1:
         pool = TavilyKeyPool(config.tavily_api_keys)
         search = PooledTavilyClient(pool)
-        console.print(f"[dim]Tavily key pool: {len(config.tavily_api_keys)} keys, ~{pool.remaining_total} calls remaining[/dim]")
+        console.print(f"[dim]Tavily key pool: {len(config.tavily_api_keys)} keys[/dim]")
     else:
         search = TavilySearchClient(api_key=config.tavily_api_key)
 
     def _with_progress(label: str, node):
         def wrapped(state):
-            console.print(label)
+            console.print(f"[bold]{label}[/bold]")
             return node(state)
-
         return wrapped
 
-    arch = architecture if architecture in ("pipeline", "multi-agent", "react") else "pipeline"
+    valid = ("pipeline", "multi-agent", "react")
+    arch = architecture if architecture in valid else "pipeline"
+
     return build_agent(
         llm=llm,
         search=search,
@@ -57,8 +59,8 @@ def main(
     max_subquestions: int = typer.Option(3, "--max-subquestions", help="Maximum generated subquestions"),
     results_per_query: int = typer.Option(5, "--results-per-query", help="Tavily results per query"),
     output_dir: str = typer.Option("reports", "--output-dir", help="Report output directory"),
-    model: str = typer.Option("deepseek-v4-pro", "--model", help="DeepSeek model"),
-    architecture: str = typer.Option("pipeline", "--architecture", help="Agent architecture: pipeline, multi-agent, or react"),
+    model: str = typer.Option("deepseek-v4-pro", "--model", help="DeepSeek model (pro client)"),
+    architecture: str = typer.Option("pipeline", "--architecture", help="Agent architecture: pipeline, multi-agent, react"),
 ):
     try:
         config = AppConfig.from_env().with_overrides(

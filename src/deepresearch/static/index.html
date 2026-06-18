@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Grill Agent — Deep Research Tree</title>
+<style>
+  :root {
+    --bg: #0f1117;
+    --panel: #161822;
+    --border: #252840;
+    --text: #c9d1d9;
+    --dim: #6e7681;
+    --accent: #58a6ff;
+    --green: #3fb950;
+    --orange: #d2991d;
+    --red: #f85149;
+    --purple: #a371f7;
+    --font: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    --mono: 'Cascadia Code', 'Fira Code', 'JetBrains Mono', monospace;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    font-family: var(--font); background: var(--bg); color: var(--text);
+    height: 100vh; display: flex; flex-direction: column; overflow: hidden;
+  }
+
+  header {
+    padding: 14px 24px; border-bottom: 1px solid var(--border);
+    background: var(--panel); display: flex; align-items: center; gap: 14px;
+  }
+  header h1 { font-size: 17px; font-weight: 600; }
+  header .badge {
+    font-size: 11px; padding: 3px 10px; border-radius: 12px;
+    background: var(--border); color: var(--dim); text-transform: uppercase; letter-spacing: 0.5px;
+  }
+  header .badge.live { background: #1a3a2a; color: var(--green); }
+  header .badge.done { background: #1a2a3a; color: var(--accent); }
+  #status-text { font-size: 13px; color: var(--dim); margin-left: auto; }
+
+  main { display: flex; flex: 1; overflow: hidden; }
+
+  /* --- Tree panel (left) --- */
+  #tree-panel {
+    width: 520px; min-width: 380px; border-right: 1px solid var(--border);
+    background: var(--panel); display: flex; flex-direction: column; overflow: hidden;
+  }
+  #tree-panel h3 {
+    padding: 12px 16px; font-size: 12px; text-transform: uppercase;
+    letter-spacing: 1px; color: var(--dim); border-bottom: 1px solid var(--border);
+  }
+  #tree { flex: 1; overflow-y: auto; padding: 12px; }
+  #tree::-webkit-scrollbar { width: 4px; }
+  #tree::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  /* Depth card */
+  .depth-card {
+    margin-bottom: 8px; border: 1px solid var(--border); border-radius: 8px;
+    background: #11131c; overflow: hidden; animation: fadeIn 0.4s ease;
+  }
+  .depth-card.d1 { border-left: 3px solid var(--accent); }
+  .depth-card.d2 { border-left: 3px solid var(--purple); }
+  .depth-card.d3 { border-left: 3px solid var(--orange); }
+  @keyframes fadeIn { from { opacity:0; transform:translateY(-4px); } to { opacity:1; transform:translateY(0); } }
+
+  .depth-header {
+    padding: 10px 14px; display: flex; align-items: center; justify-content: space-between;
+    cursor: pointer; user-select: none;
+  }
+  .depth-header:hover { background: #1a1d2a; }
+  .depth-title {
+    font-size: 13px; font-weight: 700; display: flex; align-items: center; gap: 8px;
+  }
+  .depth-title .icon { font-size: 16px; }
+  .depth-stats {
+    font-size: 11px; color: var(--dim); font-family: var(--mono);
+    display: flex; gap: 12px;
+  }
+  .depth-stats span { display: flex; align-items: center; gap: 4px; }
+  .depth-stats .val { color: var(--text); font-weight: 600; }
+
+  .depth-body { padding: 0 14px 12px; display: none; }
+  .depth-card.open .depth-body { display: block; }
+
+  /* Section labels */
+  .section-label {
+    font-size: 10px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.5px; margin: 8px 0 4px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .section-label.queries { color: var(--accent); }
+  .section-label.learnings { color: var(--purple); }
+  .section-label.directions { color: var(--orange); }
+  .section-label.errors { color: var(--red); }
+  .section-label.thinking { color: var(--green); }
+
+  /* Thinking section */
+  .thinking-block {
+    margin: 4px 0 8px; border: 1px solid #1a3020; border-radius: 6px;
+    background: #0f1812; overflow: hidden;
+  }
+  .thinking-toggle {
+    font-size: 11px; padding: 6px 10px; cursor: pointer;
+    color: var(--green); display: flex; align-items: center; gap: 4px;
+    user-select: none;
+  }
+  .thinking-toggle:hover { background: #1a2520; }
+  .thinking-toggle .arrow { transition: transform 0.2s; font-size: 10px; }
+  .thinking-block.open .thinking-toggle .arrow { transform: rotate(90deg); }
+  .thinking-body { display: none; padding: 0 10px 8px; font-size: 11px; }
+  .thinking-block.open .thinking-body { display: block; }
+  .thinking-context {
+    color: var(--dim); line-height: 1.5; margin: 4px 0;
+    padding: 6px 8px; background: #1a1d28; border-radius: 4px;
+    max-height: 150px; overflow-y: auto;
+    font-family: var(--mono); white-space: pre-wrap; word-break: break-all;
+  }
+  .thinking-response {
+    color: var(--text); line-height: 1.4; margin: 4px 0;
+    padding: 6px 8px; background: #1a1f2a; border-radius: 4px;
+    max-height: 200px; overflow-y: auto;
+    font-family: var(--mono); white-space: pre-wrap; word-break: break-all;
+  }
+
+  /* Query chips */
+  .query-list { display: flex; flex-wrap: wrap; gap: 4px; }
+  .query-chip {
+    font-size: 11px; padding: 3px 8px; border-radius: 12px;
+    background: #1a2330; color: var(--accent); border: 1px solid #1e3050;
+    font-family: var(--mono); max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .query-chip .count {
+    font-size: 10px; color: var(--green); margin-left: 4px;
+  }
+
+  /* Learning items */
+  .learning-item {
+    font-size: 12px; padding: 8px 10px; margin: 3px 0;
+    background: #1a1f30; border-radius: 4px;
+    border-left: 2px solid var(--purple); line-height: 1.5;
+  }
+  .learning-item .fact { }
+  .learning-item .src {
+    font-size: 10px; color: var(--dim); margin-top: 3px;
+    font-family: var(--mono);
+  }
+
+  /* Direction items */
+  .direction-item {
+    font-size: 11px; padding: 4px 10px; margin: 2px 0;
+    color: var(--orange); line-height: 1.4;
+    display: flex; align-items: flex-start; gap: 4px;
+  }
+  .direction-item .arrow { color: var(--dim); flex-shrink: 0; }
+
+  /* Error items */
+  .error-item {
+    font-size: 11px; padding: 5px 10px; margin: 2px 0;
+    background: #1a0f0f; border-radius: 4px;
+    border-left: 2px solid var(--red); color: var(--red);
+    font-family: var(--mono);
+  }
+
+  /* Flow arrow between cards */
+  .flow-arrow {
+    text-align: center; font-size: 14px; color: var(--dim);
+    padding: 2px 0; margin-bottom: 8px;
+    animation: fadeIn 0.6s ease;
+  }
+
+  /* Spinner */
+  .depth-card.active .depth-header {
+    background: #1a1d2a;
+  }
+  .card-spinner {
+    display: flex; align-items: center; gap: 8px; padding: 8px 14px 14px;
+    font-size: 12px; color: var(--dim);
+  }
+  .card-spinner .dot { width: 5px; height: 5px; border-radius: 50%; background: var(--accent); animation: pulse 1.2s infinite; }
+  .card-spinner .dot:nth-child(2) { animation-delay: 0.2s; }
+  .card-spinner .dot:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes pulse { 0%,100%{opacity:0.2} 50%{opacity:1} }
+
+  /* --- Report panel (right) --- */
+  #report-panel {
+    flex: 1; display: flex; flex-direction: column; overflow: hidden;
+  }
+  #report-panel h3 {
+    padding: 12px 16px; font-size: 12px; text-transform: uppercase;
+    letter-spacing: 1px; color: var(--dim); border-bottom: 1px solid var(--border);
+  }
+  #report-content {
+    flex: 1; overflow-y: auto; padding: 24px 32px;
+    font-size: 14px; line-height: 1.7;
+    white-space: pre-wrap; word-wrap: break-word;
+  }
+  #report-content::-webkit-scrollbar { width: 4px; }
+  #report-content::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+  #report-content h1 { font-size: 22px; margin-bottom: 16px; }
+  #report-content h2 { font-size: 17px; margin: 20px 0 10px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
+  #report-content strong { color: #fff; }
+  #report-placeholder {
+    display: flex; align-items: center; justify-content: center;
+    height: 100%; color: var(--dim); font-size: 14px;
+  }
+
+  footer {
+    padding: 8px 24px; border-top: 1px solid var(--border);
+    background: var(--panel); display: flex; gap: 24px;
+    font-size: 12px; color: var(--dim); font-family: var(--mono);
+  }
+  footer span strong { color: var(--text); }
+
+  #input-bar {
+    padding: 12px 24px; border-bottom: 1px solid var(--border);
+    background: var(--panel); display: flex; gap: 8px;
+  }
+  #question-input {
+    flex: 1; padding: 8px 14px; border: 1px solid var(--border);
+    border-radius: 6px; background: var(--bg); color: var(--text);
+    font-size: 14px; font-family: var(--font); outline: none;
+  }
+  #question-input:focus { border-color: var(--accent); }
+  #go-btn {
+    padding: 8px 20px; border: none; border-radius: 6px;
+    background: var(--accent); color: #fff; font-size: 13px;
+    font-weight: 600; cursor: pointer; font-family: var(--font);
+  }
+  #go-btn:hover { opacity: 0.9; }
+  #go-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  #cancel-btn {
+    padding: 8px 20px; border: 1px solid var(--red); border-radius: 6px;
+    background: transparent; color: var(--red); font-size: 13px;
+    font-weight: 600; cursor: pointer; font-family: var(--font); display: none;
+  }
+  #cancel-btn:hover { background: #3a1a1a; }
+
+  @media (max-width: 900px) {
+    main { flex-direction: column; }
+    #tree-panel { width: 100%; min-width: 0; max-height: 45vh; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Grill Agent</h1>
+  <span id="status-badge" class="badge">Idle</span>
+  <span id="status-text">等待输入研究问题</span>
+</header>
+
+<div id="input-bar">
+  <input id="question-input" type="text" placeholder="输入研究问题..." />
+  <button id="go-btn" onclick="startResearch()">开始研究</button>
+  <button id="cancel-btn" onclick="cancelResearch()">中止</button>
+</div>
+
+<main>
+  <div id="tree-panel">
+    <h3>研究递归树</h3>
+    <div id="tree"></div>
+  </div>
+  <div id="report-panel">
+    <h3>研究报告</h3>
+    <div id="report-content"><div id="report-placeholder">报告将在研究过程中实时生成...</div></div>
+  </div>
+</main>
+
+<footer>
+  <span>⏱ <strong id="elapsed">--</strong></span>
+  <span>📖 <strong id="total-learnings">0</strong> learnings</span>
+  <span>🔗 <strong id="total-sources">0</strong> sources</span>
+  <span>📊 深度: <strong id="depth-display">--</strong></span>
+</footer>
+
+<script>
+const DEPTH_LABEL = {
+  3: '第一层 · 广度探索',
+  2: '第二层 · 聚焦深挖',
+  1: '第三层 · 精准收网',
+};
+const DEPTH_ICON = { 3: '🌐', 2: '🔬', 1: '🎯' };
+
+let startTime = null;
+let reportBuffer = '';
+let totalLearnings = 0;
+let totalSources = 0;
+let depthCards = {};  // depth -> DOM element
+
+const tree = document.getElementById('tree');
+const reportContent = document.getElementById('report-content');
+const statusBadge = document.getElementById('status-badge');
+const statusText = document.getElementById('status-text');
+const goBtn = document.getElementById('go-btn');
+const cancelBtn = document.getElementById('cancel-btn');
+const questionInput = document.getElementById('question-input');
+
+function setStatus(state, text) {
+  statusBadge.className = 'badge ' + state;
+  statusBadge.textContent = state === 'live' ? 'LIVE' : state === 'done' ? 'DONE' : 'IDLE';
+  statusText.textContent = text;
+}
+
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+function getDepthCard(depth, breadth) {
+  if (depthCards[depth]) return depthCards[depth];
+
+  const card = document.createElement('div');
+  card.className = 'depth-card d' + (4 - depth) + ' open active';
+  card.setAttribute('data-depth', depth);
+
+  const label = DEPTH_LABEL[depth] || ('Depth ' + depth);
+  const icon = DEPTH_ICON[depth] || '🔍';
+
+  card.innerHTML =
+    '<div class="depth-header" onclick="this.parentElement.classList.toggle(\'open\')">' +
+      '<div class="depth-title">' +
+        '<span class="icon">' + icon + '</span>' +
+        label + ' (并搜 ' + breadth + ' 方向)' +
+      '</div>' +
+      '<div class="depth-stats">' +
+        '<span>📖 <span class="val learn-count">0</span></span>' +
+        '<span>🔗 <span class="val src-count">0</span></span>' +
+      '</div>' +
+    '</div>' +
+    '<div class="depth-body">' +
+      '<div class="section-label queries">⚡ 搜索方向</div>' +
+      '<div class="query-list"></div>' +
+      '<div class="section-label learnings">🧠 研究发现</div>' +
+      '<div class="learnings-list"></div>' +
+      '<div class="section-label directions">❓ 新方向</div>' +
+      '<div class="directions-list"></div>' +
+      '<div class="section-label errors" style="display:none">⚠ 错误</div>' +
+      '<div class="errors-list"></div>' +
+    '</div>' +
+    '<div class="card-spinner"><div class="dot"></div><div class="dot"></div><div class="dot"></div> 工作中...</div>';
+
+  depthCards[depth] = card;
+  tree.appendChild(card);
+
+  // Add flow arrow if not first card
+  const existingCards = tree.querySelectorAll('.depth-card');
+  if (existingCards.length > 1) {
+    const arrow = document.createElement('div');
+    arrow.className = 'flow-arrow';
+    arrow.textContent = '↓ 基于上层发现的新方向 ↓';
+    tree.insertBefore(arrow, card);
+  }
+
+  tree.scrollTop = tree.scrollHeight;
+  return card;
+}
+
+function getOrCreateChild(container, className) {
+  return container.querySelector('.' + className);
+}
+
+function addQueryChip(card, query, resultCount) {
+  const list = getOrCreateChild(card, 'query-list');
+  const chip = document.createElement('span');
+  chip.className = 'query-chip';
+  chip.textContent = query;
+  if (resultCount > 0) {
+    const count = document.createElement('span');
+    count.className = 'count';
+    count.textContent = '+' + resultCount;
+    chip.appendChild(count);
+  }
+  list.appendChild(chip);
+}
+
+function addLearningItem(card, fact, sourceTitle, sourceUrl) {
+  const list = getOrCreateChild(card, 'learnings-list');
+  const div = document.createElement('div');
+  div.className = 'learning-item';
+  div.innerHTML =
+    '<div class="fact">' + escapeHtml(fact) + '</div>' +
+    '<div class="src">' + escapeHtml(sourceTitle) + '</div>';
+  list.appendChild(div);
+}
+
+function addDirectionItem(card, text) {
+  const list = getOrCreateChild(card, 'directions-list');
+  const div = document.createElement('div');
+  div.className = 'direction-item';
+  div.innerHTML = '<span class="arrow">→</span>' + escapeHtml(text);
+  list.appendChild(div);
+}
+
+function addThinkingBlock(card, kind, summary, context, response) {
+  var body = getOrCreateChild(card, 'depth-body');
+  var block = document.createElement('div');
+  block.className = 'thinking-block';
+  var label = kind === 'generate' ? '🧠 策略决策' : '🧠 分析提取';
+  var html = '<div class="thinking-toggle" onclick="this.parentElement.classList.toggle(\'open\')">' +
+    '<span class="arrow">▶</span> ' + label + ': ' + escapeHtml(summary) + '</div>' +
+    '<div class="thinking-body">';
+  if (context) {
+    html += '<div style="font-size:10px;color:var(--dim);margin-bottom:2px">输入上下文:</div>' +
+      '<div class="thinking-context">' + escapeHtml(context) + '</div>';
+  }
+  if (response) {
+    html += '<div style="font-size:10px;color:var(--dim);margin:6px 0 2px">LLM 原始响应:</div>' +
+      '<div class="thinking-response">' + escapeHtml(response) + '</div>';
+  }
+  html += '</div>';
+  block.innerHTML = html;
+  // Insert before learnings section
+  var learningsLabel = body.querySelector('.section-label.learnings');
+  if (learningsLabel) {
+    body.insertBefore(block, learningsLabel);
+  } else {
+    body.appendChild(block);
+  }
+}
+
+function addErrorItem(card, text) {
+  const list = getOrCreateChild(card, 'errors-list');
+  const label = getOrCreateChild(card, 'section-label errors');
+  if (label) label.style.display = 'block';
+  const div = document.createElement('div');
+  div.className = 'error-item';
+  div.textContent = text;
+  list.appendChild(div);
+}
+
+function updateCardStats(card, learnings, sources) {
+  const lc = card.querySelector('.learn-count');
+  const sc = card.querySelector('.src-count');
+  if (lc) lc.textContent = learnings;
+  if (sc) sc.textContent = sources;
+}
+
+function finishCard(card) {
+  card.classList.remove('active');
+  const spinner = card.querySelector('.card-spinner');
+  if (spinner) spinner.remove();
+}
+
+function updateFooter(elapsed, learnings, sources, depth) {
+  if (elapsed !== null) document.getElementById('elapsed').textContent = (elapsed/1000).toFixed(1) + 's';
+  if (learnings !== null) { totalLearnings = learnings; document.getElementById('total-learnings').textContent = learnings; }
+  if (sources !== null) { totalSources = sources; document.getElementById('total-sources').textContent = sources; }
+  if (depth !== null) document.getElementById('depth-display').textContent = depth;
+}
+
+let eventSource = null;
+
+function startResearch() {
+  const question = questionInput.value.trim();
+  if (!question) return;
+  if (eventSource) eventSource.close();
+
+  startTime = Date.now();
+  reportBuffer = '';
+  totalLearnings = 0;
+  totalSources = 0;
+  depthCards = {};
+  tree.innerHTML = '';
+  reportContent.innerHTML = '<div id="report-placeholder">报告将在研究过程中实时生成...</div>';
+  setStatus('live', '初始化研究...');
+  goBtn.disabled = true;
+  cancelBtn.style.display = 'inline-block';
+  questionInput.disabled = true;
+  updateFooter(null, 0, 0, '—');
+
+  eventSource = new EventSource('/research/stream?question=' + encodeURIComponent(question));
+  eventSource.addEventListener('message', function(e) {
+    try { handleEvent(JSON.parse(e.data)); }
+    catch (err) { console.error('Parse error:', err); }
+  });
+  eventSource.addEventListener('error', function() {
+    if (eventSource.readyState === EventSource.CLOSED) finishResearch();
+  });
+  eventSource.addEventListener('done', function() {
+    eventSource.close();
+    finishResearch();
+  });
+}
+
+function cancelResearch() {
+  if (eventSource) { eventSource.close(); eventSource = null; finishResearch(); }
+}
+
+function handleEvent(event) {
+  var type = event.type;
+  var d = event.data || {};
+  var depth = d.depth || 3;
+  var breadth = d.breadth || 0;
+
+  if (type === 'phase') {
+    var phase = d.phase;
+
+    if (phase === 'generate' || phase === 'search' || phase === 'process') {
+      // Ensure card exists
+      var card = getDepthCard(depth, breadth);
+    }
+
+    if (phase === 'depth_complete') {
+      // Mark card complete
+      var card = depthCards[depth];
+      if (card) {
+        updateCardStats(card, d.total_learnings || totalLearnings, d.total_sources || totalSources);
+        finishCard(card);
+      }
+    }
+
+    if (phase === 'synthesize') {
+      setStatus('live', '撰写报告中...');
+    }
+  }
+
+  if (type === 'step') {
+    var action = d.action;
+    var card = getDepthCard(depth, breadth);
+
+    if (action === 'generate') {
+      if (d.queries) {
+        d.queries.forEach(function(q) { addQueryChip(card, q, 0); });
+      }
+      // Show the LLM's strategic thinking
+      if (d.context_directions && d.context_directions.length > 0) {
+        addThinkingBlock(card, 'generate',
+          'Context: ' + d.context_learnings_count + ' prior learnings, ' +
+          d.context_directions.length + ' directions to explore',
+          d.context_directions.join('\n'),
+          d.llm_response || ''
+        );
+      }
+    } else if (action === 'search') {
+      // Update query chips with result counts
+      var query = d.detail || '';
+      var chips = card.querySelectorAll('.query-chip');
+      chips.forEach(function(chip) {
+        if (chip.textContent.indexOf(query) === 0 || query.indexOf(chip.textContent.replace(/\+\d+$/, '').trim()) === 0) {
+          var count = chip.querySelector('.count');
+          if (count) count.textContent = '+' + (d.urls_found || 0);
+        }
+      });
+    } else if (action === 'process') {
+      // Add ALL learnings (not just previews — show full LLM thinking)
+      if (d.all_learnings) {
+        d.all_learnings.forEach(function(l) {
+          addLearningItem(card, l.fact, l.source_title, l.source_url);
+        });
+      } else if (d.learning_previews) {
+        d.learning_previews.forEach(function(l) {
+          var m = l.match(/^\[(.+?)\]\s*(.+)/);
+          addLearningItem(card, m ? m[2] : l, m ? m[1] : '', '');
+        });
+      }
+      // Add directions
+      if (d.direction_previews) {
+        d.direction_previews.forEach(function(dr) {
+          addDirectionItem(card, dr);
+        });
+      }
+      // Show the LLM's analytical thinking
+      if (d.llm_response) {
+        addThinkingBlock(card, 'process',
+          'LLM analyzed ' + (d.learnings_added || 0) + ' search results and produced ' +
+          (d.learnings_added || '?') + ' learnings + ' + (d.directions_generated || '?') + ' directions',
+          '',
+          d.llm_response
+        );
+      }
+      // Update stats
+      updateCardStats(card, d.total_learnings || d.learnings_added, d.total_sources || 0);
+      updateFooter(Date.now() - startTime, d.total_learnings || totalLearnings, d.total_sources || totalSources, (4 - depth) + '/3');
+    }
+  }
+
+  if (type === 'error') {
+    // Attach error to the most recent active card
+    var activeCard = tree.querySelector('.depth-card.active');
+    if (!activeCard) {
+      // Fallback: find the deepest card
+      var cards = tree.querySelectorAll('.depth-card');
+      activeCard = cards[cards.length - 1];
+    }
+    if (activeCard) {
+      addErrorItem(activeCard, d.message);
+    }
+  }
+
+  if (type === 'token') {
+    if (!reportBuffer) reportContent.innerHTML = '';
+    reportBuffer += d.text || '';
+    reportContent.innerHTML = renderMarkdown(reportBuffer);
+    reportContent.scrollTop = reportContent.scrollHeight;
+  }
+
+  if (type === 'done') {
+    totalSources = d.urls_visited ? d.urls_visited.length : totalSources;
+    totalLearnings = d.learnings_total || totalLearnings;
+    updateFooter(Date.now() - startTime, totalLearnings, totalSources, (d.iterations || '?') + '/3');
+    // Finish all remaining active cards
+    tree.querySelectorAll('.depth-card.active').forEach(function(c) { finishCard(c); });
+    // Show remaining errors
+    if (d.errors && d.errors.length > 0) {
+      var lastCard = tree.querySelector('.depth-card:last-child');
+      if (lastCard) {
+        d.errors.forEach(function(err) { addErrorItem(lastCard, err); });
+      }
+    }
+  }
+}
+
+function finishResearch() {
+  var elapsed = Date.now() - startTime;
+  updateFooter(elapsed, totalLearnings, totalSources, null);
+  setStatus('done', '研究完成 · ' + (elapsed/1000).toFixed(1) + 's');
+  goBtn.disabled = false;
+  cancelBtn.style.display = 'none';
+  questionInput.disabled = false;
+  if (!reportBuffer) {
+    reportContent.innerHTML = '<div id="report-placeholder">未能生成报告，请查看左侧研究树了解详情。</div>';
+  }
+}
+
+function renderMarkdown(text) {
+  var html = text;
+  html = html.replace(/^#### (.+)$/gm, '<h4>$1</h4>');
+  html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+  html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
+  html = html.replace(/^# (.+)$/gm, '<h1>$1</h1>');
+  html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  html = html.replace(/`([^`]+)`/g, '<code style="background:#252840;padding:1px 5px;border-radius:3px;font-family:var(--mono)">$1</code>');
+  html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" style="color:var(--accent)">$1</a>');
+  html = html.replace(/^- (.+)$/gm, '<li style="margin-left:20px">$1</li>');
+  html = html.replace(/((?:<li[^>]*>.*<\/li>\n?)+)/g, '<ul style="margin:8px 0">$1</ul>');
+  html = html.replace(/^---$/gm, '<hr style="border:none;border-top:1px solid var(--border);margin:16px 0">');
+  html = html.replace(/\n\n+/g, '</p><p style="margin:8px 0">');
+  html = '<p style="margin:8px 0">' + html + '</p>';
+  html = html.replace(/<p[^>]*>\s*<\/p>/g, '');
+  return html;
+}
+
+questionInput.addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') startResearch();
+});
+</script>
+</body>
+</html>

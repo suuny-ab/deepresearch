@@ -35,7 +35,7 @@ def build_agent(
     Parameters
     ----------
     architecture:
-        ``"pipeline"`` (default) — single linear 6-node LangGraph pipeline.
+        ``"pipeline"`` (default) — single linear 5-node LangGraph pipeline.
         ``"multi-agent"`` — each subquestion gets its own independent agent
         that searches, extracts, and validates in parallel; results are
         merged by a coordinator node before writing.
@@ -60,13 +60,10 @@ def build_agent(
         def run(question: str) -> ResearchState:
             from deepresearch.state import ResearchState as RS
             result = react_agent.run(question)
-            # Save report to disk
             from deepresearch.utils.filenames import make_report_filename
-            from pathlib import Path
             output_path = Path(output_dir) / make_report_filename(question)
             output_path.parent.mkdir(parents=True, exist_ok=True)
             output_path.write_text(result.report, encoding="utf-8")
-            # Collect search results from tool calls for process metrics
             from deepresearch.state import SearchResult
             search_results: list[SearchResult] = []
             for step in result.steps:
@@ -85,21 +82,17 @@ def build_agent(
                 output_path=str(output_path),
                 token_usage=result.token_usage,
                 search_results=search_results,
-                _react_steps=result.steps,  # type: ignore[typeddict-item]
+                _react_steps=result.steps,
             )  # type: ignore[return-value]
 
         return run
 
     if replay_search_results is not None:
-        # Frozen replay: skip plan+search, start from prepare_evidence.
-        # Convert dicts back to Pydantic models for the graph nodes.
         from deepresearch.state import SearchResult as SR, SubQuestion as SQ
-
         frozen_sq = [SQ(**s) if isinstance(s, dict) else s
                      for s in replay_search_results.get("subquestions", [])]
         frozen_sr = [SR(**r) if isinstance(r, dict) else r
                      for r in replay_search_results.get("search_results", [])]
-
         app = build_replay_graph(
             prepare_evidence=prepare_evidence,
             write_report=write_report,
@@ -113,7 +106,6 @@ def build_agent(
                 "subquestions": frozen_sq,
                 "search_results": frozen_sr,
             })
-
         return run
 
     if architecture == "multi-agent":
@@ -123,10 +115,9 @@ def build_agent(
             max_sources_per_subquestion=max_sources_per_subquestion,
         ))
         coordinator = _wrap("[3.5/6] Coordinating results...", make_coordinator_node())
-
         app = build_multi_agent_graph(
             plan_research=plan_research,
-            search_web=search_web,  # unused but required by signature
+            search_web=search_web,
             run_agents=run_agents,
             coordinator=coordinator,
             write_report=write_report,
@@ -143,11 +134,6 @@ def build_agent(
 
     def run(question: str) -> ResearchState:
         if replay_search_results is not None:
-            # Frozen replay: skip plan + search, inject pre-collected results.
-            # Requires replay_search_results to contain subquestions + search_results.
-            # The graph still runs plan → search but they're no-ops because
-            # we inject the frozen data directly. For pipeline mode, we must
-            # keep the edge structure; we just pre-populate the state.
             initial = {
                 "question": question,
                 "errors": [],
