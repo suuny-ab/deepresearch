@@ -15,3 +15,7 @@ drb_eval/results/
 clean/
 drb_output/
 .claude/
+ # Interview preparation (local only)
+ docs/interview-prep-ai-agent.md
+ # Word temporary files
+ ~$*.docx
