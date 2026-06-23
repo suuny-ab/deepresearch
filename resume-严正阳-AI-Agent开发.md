@@ -1,4 +1,4 @@
-# 严正阳
+﻿# 严正阳
 
 **求职意向：AI Agent 开发工程师**
 
@@ -8,7 +8,18 @@
 
 ## 专业概要
 
-从零构建多架构 AI 深度研究系统（Pipeline / Multi-Agent / ReAct V2），两阶段证据流水线实现 100% 引用合规率与 84/100 平均评估得分。在企业级 AI 数据平台主导 LLM 集成与 Agent 工程化落地，具备全链路后端开发能力。
+从零构建多架构 AI 深度研究系统（Pipeline / Multi-Agent / ReAct V2），两阶段证据流水线实现 100% 引用合规率与 84/100 平均评估得分。在企业级 AI 数据平台参与 LLM 集成与 Agent 工程化落地，具备全链路后端开发能力。
+
+---
+
+## 技术能力
+
+- **Agent 框架**：LangGraph（StateGraph 构建、多节点编排、条件路由、并行执行）
+- **LLM 集成**：OpenAI SDK / DeepSeek API、Prompt Engineering、工具调用 / 函数调用
+- **后端开发**：Python ≥3.11、FastAPI、PostgreSQL、Redis、Pydantic
+- **搜索与检索**：Tavily API、向量检索基础（Qdrant）
+- **工程化**：pytest（离线测试设计）、Git、Docker、LangSmith 链路追踪
+- **语言**：中文（母语）、英文（技术文档阅读与写作）
 
 ---
 
@@ -40,23 +51,11 @@
 
 *2024.07 – 2025.01 ｜ Python · FastAPI · PostgreSQL · Redis · Qdrant*
 
-
 AskTable 是一个企业级 AI 原生数据智能平台，用户通过自然语言与数据库交互，由 LLM 驱动的 Agent 完成 SQL 生成、数据分析与可视化。
 
-- 主导企业级 AI 数据智能平台核心研发，基于多供应商 LLM Agent 架构实现 NL2SQL、自动化数据分析与智能可视化，覆盖销售、运营等多业务场景
-- 设计并落地统一的多供应商 LLM 集成层（DeepSeek / GPT / Claude / Qwen），规范工具调用协议与对话状态管理，大幅降低新供应商接入成本
-- 独立设计并实现 Agent 取消机制、任务并发控制、SSE 流式推送等生产级工程模块，保障平台 7×24 服务稳定性与响应性能
-
----
-
-## 技能清单
-
-- **Agent 框架**：LangGraph（StateGraph 构建、多节点编排、条件路由、并行执行）
-- **LLM 集成**：OpenAI SDK / DeepSeek API、Prompt Engineering、工具调用 / 函数调用
-- **后端开发**：Python ≥3.11、FastAPI、PostgreSQL、Redis、Pydantic
-- **搜索与检索**：Tavily API、向量检索基础（Qdrant）
-- **工程化**：pytest（离线测试设计）、Git、Docker、LangSmith 链路追踪
-- **语言**：中文（母语）、英文（技术文档阅读与写作）
+- 参与企业级 AI 数据智能平台核心研发，基于多供应商 LLM Agent 架构实现 NL2SQL、自动化数据分析与智能可视化，覆盖销售、运营等多业务场景
+- 参与设计统一的多供应商 LLM 集成层（DeepSeek / GPT / Claude / Qwen），规范工具调用协议与对话状态管理
+- 独立负责 Agent 取消机制、任务并发控制、SSE 流式推送等生产级工程模块的设计与实现，保障平台 7×24 服务稳定性与响应性能
 
 ---
 
