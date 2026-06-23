@@ -21,3 +21,9 @@ resume-*
 docs/interview-prep-ai-agent.md
 # Word 临时文件
 ~$*.docx
+# Evaluation results (generated)
+evaluation/benchmark/results/
+evaluation/benchmark/experiment_results/
+evaluation/benchmark/capability_results/
+evaluation/drb_eval/results/
+evaluation/results/
