@@ -1,7 +1,7 @@
 # Deep Research Agent
 
-> Multi-agent collaborative research system with three execution modes: fixed pipeline, parallel multi-agent, and autonomous ReAct.
-> **100% citation compliance, avg review score 84, 15-dimension quality evaluation.**
+> **AI-powered LangGraph research agent with three execution modes: pipeline, multi-agent, and ReAct.** Two-phase evidence pipeline for hallucination reduction, cross-source claim validation, automated citation verification, and a 15-dimension quality evaluation framework.
+> 100% citation compliance  · 84/100 avg review score  · 195 offline tests  · Zero-LLM evaluators
 
 ## Why This Project Matters
 
@@ -71,6 +71,16 @@ EvidenceCards include `corroboration_level`: **single_source** | **weakly_corrob
 | Strong corroboration | 3.8% |
 | Weak corroboration | 25.3% |
 
+### Citation Accuracy (FACT)
+
+Validates whether cited sources actually support the claims made in the report — scrapes each URL and uses DeepSeek to verify.
+
+| Architecture | Citations Checked | Verified Correct | Accuracy |
+|---|---|---|---|
+| Pipeline | 31 | 7 | 22.6% |
+| Multi-Agent | 26 | 24 | **92.3%** |
+| ReAct | 27 | 8 | 29.6% |
+
 ## Setup
 
 ```bash
@@ -90,6 +100,28 @@ Set `LANGCHAIN_API_KEY` in `.env` to enable.
 uv run pytest                    # 195 offline tests, <2s, zero API calls
 ```
 
+
 ## Tech Stack
 
 Python · LangGraph · DeepSeek · Tavily · Pydantic · Typer · Rich · pytest · LangSmith
+
+**Project structure (source):**
+```
+
+src/deepresearch/
+├── agents/          # Multi-agent & ReAct implementations
+├── clients/         # LLM (DeepSeek) + search (Tavily) clients
+├── nodes/           # LangGraph pipeline nodes
+├── prompts/         # Task-specific prompt templates
+├── tools/           # Tool definitions (search, fetch, fact-check)
+├── utils/           # Report writing, caching, URL handling
+├── cli.py           # Typer CLI entry point
+├── config.py        # Environment-based configuration
+├── graph.py         # Pipeline StateGraph
+├── graph_multi_agent.py  # Multi-agent graph
+├── runner.py        # Agent builder (dependency injection)
+├── state.py         # Pydantic state models
+├── evaluators.py    # 15 deterministic quality evaluators
+├── citations.py     # 7-dimension citation validator
+└── errors.py        # Typed error hierarchy
+```

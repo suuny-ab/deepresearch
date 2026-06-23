@@ -1,4 +1,4 @@
-.env
+﻿.env
 .venv/
 __pycache__/
 .pytest_cache/
@@ -9,3 +9,9 @@ result.json
 .superpowers/
 findings.json
 benchmark/results/
+benchmark/experiment_results/
+benchmark/capability_results/
+drb_eval/results/
+ clean/
+ drb_output/
+ .claude/
