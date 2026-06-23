@@ -15,7 +15,9 @@ drb_eval/results/
 clean/
 drb_output/
 .claude/
- # Interview preparation (local only)
- docs/interview-prep-ai-agent.md
- # Word temporary files
- ~$*.docx
+# 个人数据与简历（本地保留，不上传云端）
+resume-*
+严正阳_*
+docs/interview-prep-ai-agent.md
+# Word 临时文件
+~$*.docx
